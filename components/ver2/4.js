@@ -77,6 +77,13 @@ const Ver2_4 = () => {
 
       </div>
 
+      {/* T2 overlay: appears at final enlarged size when arrived */}
+      <div className="t2-stage" aria-hidden>
+        <div className="t2-blob">
+          <div className="t2-ring" />
+        </div>
+      </div>
+
       <style jsx>{`
 
         .container {
@@ -90,6 +97,9 @@ const Ver2_4 = () => {
           position: relative;
 
           overflow: hidden;
+
+          /* T2 final size = bottom blob final scale(2.4) * base wrapper (450px) */
+          --t2-size: 1080px;
 
         }
 
@@ -210,6 +220,8 @@ const Ver2_4 = () => {
           align-items: center;
 
           justify-content: center;
+
+          transition: opacity 2000ms ease;
 
         }
 
@@ -411,6 +423,48 @@ const Ver2_4 = () => {
 
         }
 
+        /* T2 overlay crossfade at final size */
+        .t2-stage {
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 2000ms ease;
+          z-index: 2000;
+        }
+        .container.arrived .t2-stage { opacity: 1; }
+        .container.arrived .blob-container { opacity: 0; visibility: hidden; transition: opacity 2000ms ease, visibility 0s linear 2000ms; }
+
+        .t2-blob {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: var(--t2-size);
+          height: var(--t2-size);
+          transform: translate(-50%, -50%);
+          border-radius: 50%;
+          isolation: isolate;
+        }
+        .t2-blob::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: radial-gradient(75% 75% at 29% 28%, #C6FFB0 0%, #B4FDE5 55%, #CCF2FF 81%, #EEEFFF 100%);
+          filter: blur(22px);
+        }
+        .t2-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          pointer-events: none;
+          background: radial-gradient(circle at 72% 78%, rgba(235, 201, 255, 0) 0 77%, rgba(235, 201, 255, 0.18) 88%, rgba(235, 201, 255, 0.42) 97%, rgba(255, 189, 228, 0.6) 100%);
+          mix-blend-mode: screen;
+          filter: blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
+        }
+
         /* Responsive adjustments for the final position */
         .top-blob {
           --initial-top-top-blob: calc(-8% - 70px);
@@ -428,6 +482,7 @@ const Ver2_4 = () => {
             width: 500px;
             height: 500px;
           }
+          .container { --t2-size: 1200px; }
           .title { font-size: 48px; }
           .subtitle { font-size: 16px; }
           .top-blob {
@@ -444,6 +499,7 @@ const Ver2_4 = () => {
             width: 450px;
             height: 450px;
           }
+          .container { --t2-size: 1080px; }
           .title { font-size: 40px; }
           .subtitle { font-size: 15px; }
           .top-blob {
