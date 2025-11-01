@@ -98,7 +98,7 @@ export default function Home() {
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           {renderContent()}
           {selectedVersion === 'ver2' && (
-            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 12 }}>
+            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 12, zIndex: 5000 }}>
               <CircleButton label="1" active={selectedVer2Component === 'ver2_1'} onClick={() => setSelectedVer2Component('ver2_1')} />
               <CircleButton label="2" active={selectedVer2Component === 'ver2_2'} onClick={() => setSelectedVer2Component('ver2_2')} />
               <CircleButton label="3" active={selectedVer2Component === 'ver2_3'} onClick={() => setSelectedVer2Component('ver2_3')} />
