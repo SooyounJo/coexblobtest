@@ -6,6 +6,7 @@ import Ver2_2 from '../components/ver2/2';
 import Ver2_3 from '../components/ver2/3';
 import Ver2_4 from '../components/ver2/4';
 import Ver2_5 from '../components/ver2/5';
+import Ver2_6 from '../components/ver2/6';
 
 export default function Home() {
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -26,6 +27,8 @@ export default function Home() {
           return <Ver2_4 />;
         case 'ver2_5':
           return <Ver2_5 />;
+        case 'ver2_6':
+          return <Ver2_6 />;
         default:
           return <div>Select a Ver2 component to display.</div>;
       }
@@ -104,6 +107,7 @@ export default function Home() {
               <CircleButton label="3" active={selectedVer2Component === 'ver2_3'} onClick={() => setSelectedVer2Component('ver2_3')} />
               <CircleButton label="4" active={selectedVer2Component === 'ver2_4'} onClick={() => setSelectedVer2Component('ver2_4')} />
               <CircleButton label="5" active={selectedVer2Component === 'ver2_5'} onClick={() => setSelectedVer2Component('ver2_5')} />
+              <CircleButton label="6" active={selectedVer2Component === 'ver2_6'} onClick={() => setSelectedVer2Component('ver2_6')} />
             </div>
           )}
         </div>

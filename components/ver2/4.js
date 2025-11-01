@@ -480,9 +480,15 @@ const Ver2_4 = () => {
           inset: 0;
           border-radius: 50%;
           pointer-events: none;
-          background: radial-gradient(circle at 72% 78%, rgba(235, 201, 255, 0) 0 77%, rgba(235, 201, 255, 0.18) 88%, rgba(235, 201, 255, 0.42) 97%, rgba(255, 189, 228, 0.6) 100%);
+          background:
+            radial-gradient(circle at 72% 78%,
+              rgba(235, 201, 255, 0) 0 74%, /* transparent core */
+              rgba(179, 225, 255, 0.28) 82%, /* #B3E1FF */
+              rgba(235, 201, 255, 0.55) 90%, /* #EBC9FF */
+              rgba(255, 189, 228, 0.8) 100% /* #FFBDE4 */
+            );
           mix-blend-mode: screen;
-          filter: blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
+          filter: saturate(1.2) blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.52));
         }
 
         /* Gentle shimmering after morph completes */
@@ -503,8 +509,14 @@ const Ver2_4 = () => {
         }
 
         @keyframes t2Ring {
-          0%, 100% { opacity: 0.7; filter: blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35)); }
-          50% { opacity: 0.9; filter: blur(56px) drop-shadow(0 28px 44px rgba(186, 136, 255, 0.45)); }
+          0%, 100% {
+            opacity: 0.82;
+            filter: saturate(1.3) blur(50px) drop-shadow(0 28px 44px rgba(186, 136, 255, 0.58));
+          }
+          50% {
+            opacity: 1;
+            filter: saturate(1.6) blur(64px) drop-shadow(0 34px 60px rgba(186, 136, 255, 0.85));
+          }
         }
 
         /* Responsive adjustments for the final position */
