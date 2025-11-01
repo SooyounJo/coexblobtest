@@ -102,6 +102,9 @@ const Ver2_4 = () => {
           --t2-size: 1080px;
           /* Match bottom blob final center position */
           --t2-top: calc(44% - 400px);
+          /* unified control sizes */
+          --control-w: clamp(240px, 92vw, 360px);
+          --control-h: clamp(44px, 9.6vw, 56px);
 
         }
 
@@ -129,28 +132,41 @@ const Ver2_4 = () => {
 
         .composer {
           position: absolute;
-          left: calc(50% - 376px/2);
-          top: 760px;
-          transform: none;
-          width: 376px;
-          height: 44px;
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: 48px; /* align with CTA */
+          width: var(--control-w);
+          height: var(--control-h);
           border-radius: 999px;
-          background: rgba(240, 230, 250, 0.85);
-          box-shadow: 0 8px 22px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.75);
+          background: linear-gradient(90deg, rgba(211, 178, 226, 0.407) 0%, rgba(255, 255, 255, 0.55) 76.44%, rgba(223, 199, 234, 0.3245) 100%);
+          border: 1px solid rgba(0,0,0,0.06);
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 0 14px;
+          padding: 0 clamp(12px, 4vw, 18px);
           z-index: 13;
           opacity: 0;
           transition: opacity 350ms ease;
           pointer-events: none;
+          box-sizing: border-box;
         }
-        @media (max-width: 420px) { .composer { left: 50%; transform: translateX(-50%); width: calc(100vw - 24px); top: calc(100vh - 92px); } }
-        .container.moved .composer { opacity: 1; pointer-events: none; }
-        .composer .plus, .composer .mic { color: rgba(0,0,0,0.5); font-weight: 700; }
-        .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: rgba(0,0,0,0.55); font-weight: 600; font-size: 15px; }
-        .composer .input::placeholder { color: rgba(0,0,0,0.45); }
+        @media (max-width: 480px) {
+          .composer {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--control-w);
+            bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+            gap: 10px;
+            padding: 0 clamp(12px, 4vw, 18px);
+            border-radius: 999px;
+            overflow: hidden;
+          }
+        }
+        .container.moved .composer { opacity: 0.95; pointer-events: none; }
+        .composer .plus, .composer .mic { width: 18px; height: 18px; color: #878181; font-weight: 400; }
+        .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: #878181; font-weight: 400; font-size: 15px; }
+        .composer .input::placeholder { color: #878181; }
 
         /* hero copy */
         .hero {
@@ -174,19 +190,20 @@ const Ver2_4 = () => {
           left: 50%;
           bottom: 48px;
           transform: translateX(-50%);
-          width: calc(100% - 32px);
-          max-width: 360px;
-          height: 56px;
+          width: var(--control-w);
+          height: var(--control-h);
           border-radius: 999px;
           border: 1px solid rgba(255,255,255,0.7);
           background: rgba(255,255,255,0.92);
           box-shadow: 0 12px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
           color: #111;
-          font-size: 17px;
+          font-size: clamp(14px, 4.2vw, 17px);
           font-weight: 800;
+          padding: 0 clamp(12px, 4vw, 18px);
           cursor: pointer;
           z-index: 13;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+          box-sizing: border-box;
         }
 
         .backBtn {
@@ -249,7 +266,7 @@ const Ver2_4 = () => {
           transform: translate(-50%, -50%) scale(1.2);
 
           /* top: slower ease-in (starts slow → accelerates); transform grows first; left slides after a short delay */
-          transition: top 2s cubic-bezier(0.4, 0, 1, 1), transform 1.5s cubic-bezier(0.22, 1, 0.36, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: top 1.6s cubic-bezier(0.4, 0, 1, 1), transform 1.2s cubic-bezier(0.22, 1, 0.36, 1), left 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 
         }
 
@@ -261,7 +278,7 @@ const Ver2_4 = () => {
 
           transform: translate(-50%, -50%) scale(1.3);
 
-          transition: top 2s cubic-bezier(0.4, 0, 1, 1), transform 1.5s cubic-bezier(0.22, 1, 0.36, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: top 1.6s cubic-bezier(0.4, 0, 1, 1), transform 1.2s cubic-bezier(0.22, 1, 0.36, 1), left 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 
         }
 
@@ -456,7 +473,7 @@ const Ver2_4 = () => {
           inset: 0;
           border-radius: 50%;
           background: radial-gradient(75% 75% at 29% 28%, #C6FFB0 0%, #B4FDE5 55%, #CCF2FF 81%, #EEEFFF 100%);
-          filter: blur(22px);
+          filter: blur(22px) hue-rotate(0deg) saturate(1) brightness(1);
         }
         .t2-ring {
           position: absolute;
@@ -466,6 +483,28 @@ const Ver2_4 = () => {
           background: radial-gradient(circle at 72% 78%, rgba(235, 201, 255, 0) 0 77%, rgba(235, 201, 255, 0.18) 88%, rgba(235, 201, 255, 0.42) 97%, rgba(255, 189, 228, 0.6) 100%);
           mix-blend-mode: screen;
           filter: blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
+        }
+
+        /* Gentle shimmering after morph completes */
+        .container.arrived .t2-blob { animation: t2Float 12s ease-in-out 2s infinite; }
+        .container.arrived .t2-blob::before { animation: t2Pulse 10s ease-in-out 2s infinite; }
+        .container.arrived .t2-ring { animation: t2Ring 10s ease-in-out 2s infinite alternate; }
+
+        @keyframes t2Float {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(calc(-50% - 0.6%), calc(-50% - 0.6%)) scale(1.015); }
+        }
+
+        @keyframes t2Pulse {
+          0%, 100% { filter: blur(22px) hue-rotate(0deg) saturate(1) brightness(1); }
+          25% { filter: blur(23px) hue-rotate(6deg) saturate(1.06) brightness(1.04); }
+          50% { filter: blur(24px) hue-rotate(10deg) saturate(1.12) brightness(1.08); }
+          75% { filter: blur(23px) hue-rotate(4deg) saturate(1.05) brightness(1.03); }
+        }
+
+        @keyframes t2Ring {
+          0%, 100% { opacity: 0.7; filter: blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35)); }
+          50% { opacity: 0.9; filter: blur(56px) drop-shadow(0 28px 44px rgba(186, 136, 255, 0.45)); }
         }
 
         /* Responsive adjustments for the final position */

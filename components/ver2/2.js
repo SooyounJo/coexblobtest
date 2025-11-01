@@ -83,6 +83,10 @@ const Ver2_2 = () => {
 
           overflow: hidden;
 
+          /* unified control sizes */
+          --control-w: clamp(240px, 92vw, 360px);
+          --control-h: clamp(44px, 9.6vw, 56px);
+
         }
 
         /* hero copy */
@@ -107,8 +111,8 @@ const Ver2_2 = () => {
           left: 50%;
           bottom: 48px;
           transform: translateX(-50%);
-          width: clamp(240px, 92vw, 360px);
-          height: clamp(44px, 9.6vw, 56px);
+          width: var(--control-w);
+          height: var(--control-h);
           border-radius: 999px;
           border: 1px solid rgba(0,0,0,0.06);
           background: rgba(255,255,255,0.92);
@@ -121,6 +125,7 @@ const Ver2_2 = () => {
           z-index: 11;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
           transition: opacity 300ms ease, transform 300ms ease;
+          box-sizing: border-box;
         }
 
         .hero, .cta { transition: opacity 350ms ease, transform 350ms ease; }
@@ -146,37 +151,40 @@ const Ver2_2 = () => {
 
         .composer {
           position: absolute;
-          left: calc(50% - 376px/2);
-          top: 785px;
-          transform: none;
-          width: 376px;
-          height: 44px;
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: 48px; /* align with CTA */
+          width: var(--control-w); /* match CTA */
+          height: var(--control-h); /* match CTA */
           display: flex;
           flex-direction: row;
           align-items: center;
-          padding: 9px 20px;
-          gap: 300px;
+          padding: 0 clamp(12px, 4vw, 18px);
+          gap: 10px;
           background: linear-gradient(90deg, rgba(211, 178, 226, 0.407) 0%, rgba(255, 255, 255, 0.55) 76.44%, rgba(223, 199, 234, 0.3245) 100%);
-          border-radius: 22px;
+          border-radius: 999px; /* match CTA shape */
+          border: 1px solid rgba(0,0,0,0.06); /* match CTA stroke (color differs) */
           z-index: 12;
           opacity: 0;
           pointer-events: none;
           transition: opacity 600ms ease-in;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+          box-sizing: border-box;
         }
         @media (max-width: 480px) {
           .composer {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
-            width: min(80vw, 376px);
-            top: auto;
+            width: var(--control-w); /* match CTA */
             bottom: calc(30px + env(safe-area-inset-bottom, 0px));
             gap: 10px;
-            padding: 9px 14px;
+            padding: 0 clamp(12px, 4vw, 18px); /* match CTA */
+            border-radius: 999px; /* match CTA */
+            overflow: hidden; /* ensure gradient corners clip */
           }
         }
-        .container.arrived .composer { opacity: 1; }
+        .container.arrived .composer { opacity: 0.95; }
         .composer .plus, .composer .mic { width: 18px; height: 18px; color: #878181; font-weight: 400; flex: none; }
         .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: #878181; font-weight: 400; font-size: 15px; line-height: 150%; }
         .composer .input::placeholder { color: #878181; opacity: 1; }
@@ -225,7 +233,7 @@ const Ver2_2 = () => {
 
           transform: translate(-50%, -50%) scale(1.2);
 
-          transition: top 2s cubic-bezier(0.4, 0, 1, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: top 1.6s cubic-bezier(0.4, 0, 1, 1), left 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 
           opacity: 0.78; /* 상단 블롭 전체 투명도 약간 낮춤 */
 
@@ -239,7 +247,7 @@ const Ver2_2 = () => {
 
           transform: translate(-50%, -50%) scale(1.3);
 
-          transition: top 2s cubic-bezier(0.4, 0, 1, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: top 1.6s cubic-bezier(0.4, 0, 1, 1), left 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 
         }
 
