@@ -45,7 +45,8 @@ export default function Home() {
         fontSize: 16,
         backgroundColor: active ? '#0070f3' : '#f0f0f0',
         color: active ? 'white' : 'black',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+        opacity: active ? 0.95 : 0.8
       }}
     >
       {label}
@@ -97,7 +98,7 @@ export default function Home() {
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           {renderContent()}
           {selectedVersion === 'ver2' && (
-            <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 12 }}>
+            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 12 }}>
               <CircleButton label="1" active={selectedVer2Component === 'ver2_1'} onClick={() => setSelectedVer2Component('ver2_1')} />
               <CircleButton label="2" active={selectedVer2Component === 'ver2_2'} onClick={() => setSelectedVer2Component('ver2_2')} />
               <CircleButton label="3" active={selectedVer2Component === 'ver2_3'} onClick={() => setSelectedVer2Component('ver2_3')} />

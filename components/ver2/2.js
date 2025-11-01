@@ -1,14 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 
 
 const Ver2_2 = () => {
   const [moved, setMoved] = useState(false);
+  const [arrived, setArrived] = useState(false);
+
+  useEffect(() => {
+    if (moved) {
+      const t = setTimeout(() => setArrived(true), 2000);
+      return () => clearTimeout(t);
+    }
+    setArrived(false);
+  }, [moved]);
 
   return (
 
-    <div className={`container ${moved ? 'moved' : ''}`} onClick={() => setMoved(v => !v)} onTouchStart={() => setMoved(v => !v)}>
+    <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''}`}>
 
+      {/* 텍스트 오버레이 */}
+      <div className="hero">
+        <div className="eyebrow">Welcome To</div>
+        <h1 className="title">Sori<br/>Coex Guide</h1>
+        <p className="subtitle">오늘 538번째로 대화하는 중이에요</p>
+      </div>
+      <button className="cta" onClick={(e) => { e.stopPropagation(); setMoved(true); }}>
+        시작하기
+      </button>
+
+      {/* 전환 후 상단 중앙 안내 문구 */}
+      <div className="greet">
+        <div className="greet-line1">안녕하세요! 이솔이에요</div>
+        <div className="greet-line2">코엑스 안내를 도와드릴게요</div>
+      </div>
+
+      {/* 비활성화된 입력 박스 */}
+      <div className="composer" aria-disabled onClick={(e)=>e.stopPropagation()}>
+        <span className="plus">+</span>
+        <input className="input" type="text" placeholder="메시지 보내기..." disabled />
+        <span className="mic">🎤</span>
+      </div>
+
+      {/* (no hero/cta) - blobs only */}
+ 
       <div className="blob-container">
 
         {/* 위쪽 블롭 */}
@@ -41,15 +75,105 @@ const Ver2_2 = () => {
 
           width: 100%;
 
-          height: 100%;
+          height: 100vh;
 
-          background: #FFF5E8;
+          background: #FFFFFF;
 
           position: relative;
 
           overflow: hidden;
 
         }
+
+        /* hero copy */
+        .hero {
+          position: absolute;
+          bottom: 150px;
+          left: 16px;
+          right: 16px;
+          color: #111;
+          z-index: 10;
+          mix-blend-mode: normal;
+          opacity: 1;
+          pointer-events: none;
+          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+        }
+        .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 8px; }
+        .title { font-size: 44px; line-height: 1.05; font-weight: 900; margin: 0 0 10px 0; }
+        .subtitle { font-size: 15px; line-height: 1.4; font-weight: 600; margin: 0; opacity: 0.9; }
+
+        .cta {
+          position: absolute;
+          left: 50%;
+          bottom: 48px;
+          transform: translateX(-50%);
+          width: calc(100% - 32px);
+          max-width: 360px;
+          height: 56px;
+          border-radius: 999px;
+          border: 1px solid rgba(0,0,0,0.06);
+          background: rgba(255,255,255,0.92);
+          box-shadow: 0 12px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+          color: #111;
+          font-size: 17px;
+          font-weight: 800;
+          cursor: pointer;
+          z-index: 11;
+          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+          transition: opacity 300ms ease, transform 300ms ease;
+        }
+
+        .hero, .cta { transition: opacity 350ms ease, transform 350ms ease; }
+        .container.moved .hero, .container.moved .cta { opacity: 0; transform: translateY(6px); pointer-events: none; }
+
+        /* greet after arrived */
+        .greet {
+          position: absolute;
+          top: 96px;
+          left: 50%;
+          transform: translate(-50%, 6px);
+          text-align: center;
+          color: #111;
+          z-index: 12;
+          mix-blend-mode: normal;
+          opacity: 0;
+          transition: opacity 1000ms ease-in, transform 1000ms ease-in;
+          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+        }
+        .greet-line1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+        .greet-line2 { font-size: 18px; font-weight: 700; opacity: 0.9; }
+        .container.arrived .greet { opacity: 1; transform: translate(-50%, 0); }
+
+        .composer {
+          position: absolute;
+          left: calc(50% - 376px/2);
+          top: 760px;
+          transform: none;
+          width: 376px;
+          height: 44px;
+          border-radius: 999px;
+          background: rgba(245,245,245,0.95);
+          border: 1px solid rgba(0,0,0,0.06);
+          box-shadow: 0 8px 22px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.75);
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 14px;
+          z-index: 12;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 600ms ease-in;
+          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+        }
+        @media (max-width: 420px) {
+          .composer { left: 50%; transform: translateX(-50%); width: calc(100vw - 24px); top: calc(100vh - 92px); }
+        }
+        .container.arrived .composer { opacity: 1; }
+        .composer .plus, .composer .mic { color: rgba(0,0,0,0.5); font-weight: 700; }
+        .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: rgba(0,0,0,0.55); font-weight: 600; font-size: 15px; }
+        .composer .input::placeholder { color: rgba(0,0,0,0.45); }
+
+        /* (no hero/cta) - blobs only */
 
         .blob-container {
 
@@ -87,11 +211,13 @@ const Ver2_2 = () => {
 
         .top-blob {
 
-          top: -5%;
+          top: calc(-8% - 70px);
 
           transform: translate(-50%, -50%) scale(1.2);
 
-          transition: top 1.6s cubic-bezier(0.22, 1, 0.36, 1), left 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: top 2s cubic-bezier(0.4, 0, 1, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+
+          opacity: 0.78; /* 상단 블롭 전체 투명도 약간 낮춤 */
 
         }
 
@@ -99,19 +225,22 @@ const Ver2_2 = () => {
 
         .bottom-blob {
 
-          top: 78%;
+          top: calc(75% - 70px);
 
           transform: translate(-50%, -50%) scale(1.3);
 
-          transition: top 1.6s cubic-bezier(0.22, 1, 0.36, 1), left 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+          transition: top 2s cubic-bezier(0.4, 0, 1, 1), left 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
 
         }
 
-        /* moved: 위로 더 부드럽게 이동, 살짝 좌측 */
+        /* moved: 위로 이동 (중앙축) */
+        .container.moved .top-blob { top: calc(-24% - 400px); left: 50%; }
 
-        .container.moved .top-blob { top: -20%; left: 49%; }
+        .container.moved .bottom-blob { top: calc(44% - 400px); left: 50%; }
 
-        .container.moved .bottom-blob { top: 56%; left: 49%; }
+        /* arrived: 도착 후 확대 */
+        .container.arrived .top-blob { left: 50%; transform: translate(-50%, -50%) scale(2.2); }
+        .container.arrived .bottom-blob { left: 50%; transform: translate(-50%, -50%) scale(2.4); }
 
         .main-blob {
 
@@ -126,6 +255,8 @@ const Ver2_2 = () => {
           top: 0;
 
           border-radius: 50%;
+
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.35), 0 0 10px rgba(255,255,255,0.15);
 
         }
 
@@ -152,7 +283,7 @@ const Ver2_2 = () => {
 
           transform: rotate(0deg);
 
-          filter: blur(35px) hue-rotate(0deg) brightness(1) saturate(1);
+          filter: blur(10px) hue-rotate(0deg) brightness(1) saturate(1);
 
           transition: filter 1.6s cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -172,7 +303,7 @@ const Ver2_2 = () => {
 
           transform: rotate(-180deg);
 
-          filter: blur(5px) hue-rotate(0deg) brightness(1) saturate(1);
+          filter: blur(1px) hue-rotate(0deg) brightness(1) saturate(1);
 
           transition: filter 1.6s cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -188,9 +319,9 @@ const Ver2_2 = () => {
 
         /* moved: 더 블러리해지도록 */
 
-        .container.moved .top-blob .main-blob { filter: blur(42px) hue-rotate(0deg) brightness(1.02) saturate(1.05); }
+        .container.moved .top-blob .main-blob { filter: blur(14px) hue-rotate(0deg) brightness(1.02) saturate(1.05); }
 
-        .container.moved .bottom-blob .main-blob { filter: blur(8px) hue-rotate(0deg) brightness(1.02) saturate(1.05); }
+        .container.moved .bottom-blob .main-blob { filter: blur(2px) hue-rotate(0deg) brightness(1.02) saturate(1.05); }
 
         @keyframes fadeInOut1 {
 
@@ -228,25 +359,25 @@ const Ver2_2 = () => {
 
           0%, 100% {
 
-            filter: blur(35px) hue-rotate(0deg) brightness(1) saturate(1);
+            filter: blur(10px) hue-rotate(0deg) brightness(1) saturate(1);
 
           }
 
           25% {
 
-            filter: blur(37px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
+            filter: blur(12px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
 
           }
 
           50% {
 
-            filter: blur(40px) hue-rotate(10deg) brightness(1.15) saturate(1.2);
+            filter: blur(14px) hue-rotate(10deg) brightness(1.15) saturate(1.2);
 
           }
 
           75% {
 
-            filter: blur(37px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
+            filter: blur(12px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
 
           }
 
@@ -256,25 +387,25 @@ const Ver2_2 = () => {
 
           0%, 100% {
 
-            filter: blur(5px) hue-rotate(0deg) brightness(1) saturate(1);
+            filter: blur(1px) hue-rotate(0deg) brightness(1) saturate(1);
 
           }
 
           25% {
 
-            filter: blur(6px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
+            filter: blur(1.3px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
 
           }
 
           50% {
 
-            filter: blur(7px) hue-rotate(10deg) brightness(1.15) saturate(1.2);
+            filter: blur(1.6px) hue-rotate(10deg) brightness(1.15) saturate(1.2);
 
           }
 
           75% {
 
-            filter: blur(6px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
+            filter: blur(1.3px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
 
           }
 
@@ -294,7 +425,7 @@ const Ver2_2 = () => {
 
           .top-blob {
 
-            top: 0%;
+            top: calc(0% - 70px);
 
             transform: translate(-50%, -50%) scale(1.3);
 
@@ -302,7 +433,7 @@ const Ver2_2 = () => {
 
           .bottom-blob {
 
-            top: 75%;
+            top: calc(75% - 70px);
 
             transform: translate(-50%, -50%) scale(1.4);
 
@@ -322,7 +453,7 @@ const Ver2_2 = () => {
 
           .top-blob {
 
-            top: -2%;
+            top: calc(-2% - 70px);
 
             transform: translate(-50%, -50%) scale(1.4);
 
@@ -330,7 +461,7 @@ const Ver2_2 = () => {
 
           .bottom-blob {
 
-            top: 72%;
+            top: calc(72% - 70px);
 
             transform: translate(-50%, -50%) scale(1.5);
 

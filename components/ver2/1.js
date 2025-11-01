@@ -36,7 +36,7 @@ const Ver2_1 = () => {
   }, []);
 
   return (
-    <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+    <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', overflow: 'hidden' }}>
       <div className="blob-container">
         {/* 잔상 레이어들 - 뒤에서 앞으로 */}
         <div className="trail-blob trail-5"></div>
@@ -47,6 +47,8 @@ const Ver2_1 = () => {
         
         {/* 메인 블롭 - 그라디언트 블러 효과 */}
         <div className="blob-wrapper">
+          <div className="glow"></div>
+          <div className="bloom"></div>
           {/* 선명한 레이어 (위쪽) */}
           <div className="main-blob sharp"></div>
           {/* 블러 레이어 (아래쪽) */}
@@ -56,7 +58,7 @@ const Ver2_1 = () => {
       <style jsx>{`
         .container {
           width: 100%;
-          height: 100%;
+          height: 100vh;
           background: white;
           position: relative;
           overflow: hidden;
@@ -81,6 +83,28 @@ const Ver2_1 = () => {
           z-index: 5;
           animation: shaderWave 8s ease-in-out infinite;
         }
+        .glow {
+          position: absolute;
+          inset: -10%;
+          border-radius: 50%;
+          background: radial-gradient(45% 45% at 50% 50%, rgba(255,255,220,0.7) 0%, rgba(255,255,220,0.0) 60%);
+          filter: blur(30px);
+          mix-blend-mode: screen;
+          pointer-events: none;
+          animation: glowPulse 3s ease-in-out infinite;
+        }
+        .bloom {
+          position: absolute;
+          inset: -6%;
+          border-radius: 50%;
+          background: radial-gradient(50% 50% at 50% 50%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.0) 70%);
+          filter: blur(26px);
+          mix-blend-mode: screen;
+          pointer-events: none;
+          opacity: 0.0;
+          animation: bloomTwinkle 2.8s ease-in-out infinite;
+          animation-delay: .6s;
+        }
         .main-blob {
           position: absolute;
           width: 100%;
@@ -99,12 +123,16 @@ const Ver2_1 = () => {
           mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0) 60%);
           -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0) 60%);
           z-index: 2;
+          opacity: 0.96;
+          animation: gleamSharp 4.2s ease-in-out infinite;
         }
         .main-blob.blurred {
           filter: blur(25px);
           mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,1) 70%);
           -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,1) 70%);
           z-index: 1;
+          opacity: 0.82;
+          animation: gleamBlur 4.8s ease-in-out infinite;
         }
         .trail-blob {
           position: absolute;
@@ -139,6 +167,22 @@ const Ver2_1 = () => {
         }
         @media (max-width: 480px) {
           .blob-wrapper, .trail-blob { width: 300px; height: 300px; }
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.0; transform: scale(0.98); }
+          50% { opacity: 0.85; transform: scale(1.02); }
+        }
+        @keyframes bloomTwinkle {
+          0%, 100% { opacity: 0.0; transform: scale(1); }
+          50% { opacity: 0.35; transform: scale(1.03); }
+        }
+        @keyframes gleamSharp {
+          0%, 100% { opacity: 0.96; }
+          50% { opacity: 1; }
+        }
+        @keyframes gleamBlur {
+          0%, 100% { opacity: 0.82; }
+          50% { opacity: 0.9; }
         }
       `}</style>
     </div>
