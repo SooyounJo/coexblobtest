@@ -164,8 +164,17 @@ const Ver2_2 = () => {
           transition: opacity 600ms ease-in;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
         }
-        @media (max-width: 420px) {
-          .composer { left: 50%; transform: translateX(-50%); width: calc(100vw - 24px); top: calc(100vh - 68px); }
+        @media (max-width: 480px) {
+          .composer {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100vw - 24px);
+            top: auto;
+            bottom: max(12px, env(safe-area-inset-bottom, 12px));
+            gap: 10px;
+            padding: 9px 14px;
+          }
         }
         .container.arrived .composer { opacity: 1; }
         .composer .plus, .composer .mic { width: 18px; height: 18px; color: #878181; font-weight: 400; flex: none; }
