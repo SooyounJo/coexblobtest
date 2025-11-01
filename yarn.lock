@@ -1342,7 +1342,7 @@ eslint-plugin-jsx-a11y@^6.10.0:
     safe-regex-test "^1.0.3"
     string.prototype.includes "^2.0.1"
 
-eslint-plugin-react-hooks@^7.0.0:
+eslint-plugin-react-hooks@^7.0.0, eslint-plugin-react-hooks@^7.0.1:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-react-hooks/-/eslint-plugin-react-hooks-7.0.1.tgz#66e258db58ece50723ef20cc159f8aa908219169"
   integrity sha512-O0d0m04evaNzEPoSW+59Mezf8Qt0InfgGIBJnpC0h3NH/WjUAR7BIKUfysC6todmtiZ/A0oUVS8Gce0WhBrHsA==
@@ -1353,7 +1353,7 @@ eslint-plugin-react-hooks@^7.0.0:
     zod "^3.25.0 || ^4.0.0"
     zod-validation-error "^3.5.0 || ^4.0.0"
 
-eslint-plugin-react@^7.37.0:
+eslint-plugin-react@^7.37.0, eslint-plugin-react@^7.37.5:
   version "7.37.5"
   resolved "https://registry.yarnpkg.com/eslint-plugin-react/-/eslint-plugin-react-7.37.5.tgz#2975511472bdda1b272b34d779335c9b0e877065"
   integrity sha512-Qteup0SqU15kdocexFNAJMvCJEfa2xUKNV4CC1xsVMrIIqEy3SQ/rqyxCWNzfrd3/ldy6HMlD2e0JDVpDg2qIA==
