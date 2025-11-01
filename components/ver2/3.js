@@ -118,27 +118,27 @@ const Ver2_3 = () => {
         .composer {
           position: absolute;
           left: calc(50% - 376px/2);
-          top: 760px;
+          top: 785px;
           transform: none;
           width: 376px;
           height: 44px;
-          border-radius: 999px;
-          background: rgba(240, 230, 250, 0.85);
-          box-shadow: 0 8px 22px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.75);
           display: flex;
+          flex-direction: row;
           align-items: center;
-          gap: 10px;
-          padding: 0 14px;
+          padding: 9px 20px;
+          gap: 300px;
+          background: linear-gradient(90deg, rgba(211, 178, 226, 0.407) 0%, rgba(255, 255, 255, 0.55) 76.44%, rgba(223, 199, 234, 0.3245) 100%);
+          border-radius: 22px;
           z-index: 13;
           opacity: 0;
           transition: opacity 350ms ease;
           pointer-events: none;
         }
-        @media (max-width: 420px) { .composer { left: 50%; transform: translateX(-50%); width: calc(100vw - 24px); top: calc(100vh - 92px); } }
+        @media (max-width: 420px) { .composer { left: 50%; transform: translateX(-50%); width: calc(100vw - 24px); top: calc(100vh - 68px); } }
         .container.moved .composer { opacity: 1; pointer-events: none; }
-        .composer .plus, .composer .mic { color: rgba(0,0,0,0.5); font-weight: 700; }
-        .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: rgba(0,0,0,0.55); font-weight: 600; font-size: 15px; }
-        .composer .input::placeholder { color: rgba(0,0,0,0.45); }
+        .composer .plus, .composer .mic { width: 18px; height: 18px; color: #878181; font-weight: 400; flex: none; }
+        .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: #878181; font-weight: 400; font-size: 15px; line-height: 150%; }
+        .composer .input::placeholder { color: #878181; opacity: 1; }
 
         /* hero copy */
         .hero {
@@ -210,6 +210,8 @@ const Ver2_3 = () => {
           align-items: center;
 
           justify-content: center;
+
+          z-index: 1; /* blobs behind text/buttons */
 
         }
 

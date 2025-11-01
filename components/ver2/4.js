@@ -224,6 +224,7 @@ const Ver2_4 = () => {
           justify-content: center;
 
           transition: opacity 2000ms ease;
+          z-index: 1; /* blobs behind text/buttons */
 
         }
 
@@ -434,7 +435,7 @@ const Ver2_4 = () => {
           pointer-events: none;
           opacity: 0;
           transition: opacity 2000ms ease;
-          z-index: 2000;
+          z-index: 5; /* behind text/buttons, above base blobs when crossfading */
         }
         .container.arrived .t2-stage { opacity: 1; }
         .container.arrived .blob-container { opacity: 0; visibility: hidden; transition: opacity 2000ms ease, visibility 0s linear 2000ms; }
