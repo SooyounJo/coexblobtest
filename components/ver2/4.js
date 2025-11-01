@@ -6,7 +6,6 @@ const Ver2_4 = () => {
 
   const [moved, setMoved] = useState(false);
   const [arrived, setArrived] = useState(false);
-  const [morphT2, setMorphT2] = useState(false);
 
   useEffect(() => {
     if (moved) {
@@ -14,21 +13,11 @@ const Ver2_4 = () => {
       return () => clearTimeout(t);
     }
     setArrived(false);
-    setMorphT2(false);
   }, [moved]);
-
-  useEffect(() => {
-    if (arrived) {
-      // Start crossfade immediately after expansion completes
-      setMorphT2(true);
-      return;
-    }
-    setMorphT2(false);
-  }, [arrived]);
 
   return (
 
-    <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''} ${morphT2 ? 'morph-t2' : ''}`}>
+    <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''}`}>
 
       {/* 텍스트 오버레이 */}
       <div className="hero">
@@ -39,7 +28,7 @@ const Ver2_4 = () => {
       <button className="cta" onClick={(e) => { e.stopPropagation(); setMoved(true); }}>
         시작하기
       </button>
-      <button className="backBtn" onClick={(e) => { e.stopPropagation(); setMoved(false); setArrived(false); setMorphT2(false); }}>
+      <button className="backBtn" onClick={(e) => { e.stopPropagation(); setMoved(false); setArrived(false); }}>
         ← 뒤로가기
       </button>
       {/* 전환 후 상단 중앙 안내 문구 */}
@@ -54,32 +43,38 @@ const Ver2_4 = () => {
         <span className="mic">🎤</span>
       </div>
 
-      {/* 원본 3.js의 블롭들 */}
       <div className="blob-container">
 
         {/* 위쪽 블롭 */}
+
         <div className="blob-wrapper top-blob">
+
           <div className="trail-blob t1"></div>
+
           <div className="trail-blob t2"></div>
+
           <div className="main-blob color1"></div>
+
           <div className="main-blob color2"></div>
+
         </div>
+
+        
 
         {/* 아래쪽 블롭 */}
+
         <div className="blob-wrapper bottom-blob">
+
           <div className="trail-blob t1"></div>
+
           <div className="trail-blob t2"></div>
+
           <div className="main-blob color1"></div>
+
           <div className="main-blob color2"></div>
+
         </div>
 
-      </div>
-
-      {/* T2 스타일 오버레이 (morph-t2 시 2초간 페이드인) */}
-      <div className="t2-stage" aria-hidden>
-        <div className="t2-blob">
-          <div className="t2-ring" />
-        </div>
       </div>
 
       <style jsx>{`
@@ -101,12 +96,6 @@ const Ver2_4 = () => {
         /* transition visibility between states */
         .hero, .cta { transition: opacity 350ms ease, transform 350ms ease; }
         .container.moved .hero, .container.moved .cta { opacity: 0; transform: translateY(6px); pointer-events: none; }
-        /* morph-t2: 화면에 T2 블롭만 남도록 기타 UI 숨김 */
-        .container.morph-t2 .hero,
-        .container.morph-t2 .greet,
-        .container.morph-t2 .cta,
-        .container.morph-t2 .backBtn,
-        .container.morph-t2 .composer { opacity: 0 !important; pointer-events: none !important; }
 
         .greet {
           position: absolute;
@@ -221,8 +210,6 @@ const Ver2_4 = () => {
           align-items: center;
 
           justify-content: center;
-
-          transition: opacity 2s ease;
 
         }
 
@@ -467,50 +454,6 @@ const Ver2_4 = () => {
             --initial-top-bottom-blob: calc(72% - 70px);
             --final-top-bottom-blob: 40%; /* Mobile adjustment */
           }
-        }
-
-        /* T2 overlay crossfade */
-        .t2-stage {
-          position: absolute;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 2s ease;
-          z-index: 2000; /* 최상단에 배치 */
-        }
-        .container.morph-t2 .t2-stage { opacity: 1; }
-        .container.morph-t2 .blob-container {
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 2s ease, visibility 0s linear 2s; /* hide fully after fade */
-        }
-
-        .t2-blob {
-          width: 70vmin;
-          aspect-ratio: 1;
-          position: relative;
-          border-radius: 50%;
-          isolation: isolate;
-        }
-        .t2-blob::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          background: radial-gradient(75% 75% at 29% 28%, #C6FFB0 0%, #B4FDE5 55%, #CCF2FF 81%, #EEEFFF 100%);
-          filter: blur(22px);
-        }
-        .t2-ring {
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          pointer-events: none;
-          background:
-            radial-gradient(circle at 72% 78%, rgba(235, 201, 255, 0) 0 77%, rgba(235, 201, 255, 0.18) 88%, rgba(235, 201, 255, 0.42) 97%, rgba(255, 189, 228, 0.6) 100%);
-          mix-blend-mode: screen;
-          filter: blur(52px) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
         }
 
       `}</style>
