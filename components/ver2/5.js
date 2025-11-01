@@ -180,7 +180,8 @@ const Ver2_5 = () => {
           box-shadow: 0px -14px 20px #FFEFFC, 0px 20px 20px #CBD7F3, 0px 4px 100px #CFE9FF;
           transform: translateY(40vh);
           opacity: 0;
-          transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 700ms ease, box-shadow 250ms ease, filter 250ms ease;
+          transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1), opacity 700ms ease, box-shadow 250ms ease, filter 250ms ease;
+          filter: none; /* keep base brightness/saturation neutral */
           pointer-events: auto;
           cursor: pointer;
           z-index: 1;
@@ -225,10 +226,11 @@ const Ver2_5 = () => {
           box-shadow: 0px -14px 20px #FFEFFC, 0px 20px 20px #CBD7F3, 0px 4px 100px #CFE9FF;
           transform: translateY(40vh);
           opacity: 0;
-          transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 700ms ease, box-shadow 250ms ease, filter 250ms ease;
+          transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1), opacity 700ms ease, box-shadow 250ms ease, filter 250ms ease;
           backdrop-filter: blur(28.5px);
           -webkit-backdrop-filter: blur(28.5px);
           pointer-events: auto; cursor: pointer; z-index: 1;
+          filter: none; /* keep base brightness neutral */
         }
         /* 1) Ellipse 2695 — 가족과의 놀거리 추천 */
         .a1{ left: -9px; top: 62px; width: 297px; height: 297px; z-index: 1; 
@@ -258,21 +260,24 @@ const Ver2_5 = () => {
           mix-blend-mode: plus-lighter;
           box-shadow: 0px -14px 20px #FFEFFC, 0px 20px 20px #CBD7F3, 0px 4px 100px #CFE9FF;
           transition: box-shadow 250ms ease, filter 250ms ease, opacity 250ms ease;
+          filter: none;
         }
         .balloonB.active::before{ box-shadow: 0px -18px 26px #FFEFFC, 0px 26px 26px #CBD7F3, 0px 8px 140px #CFE9FF; }
         /* lock size of cafe (s1) when active to avoid elongation */
         .s1.active{ width: 170px; height: 170px; transform: translateY(0); }
         /* 3) Ellipse 2701 — 카페 추천 */
         .s1{ left: 35px; top: 354px; width: 152px; height: 152px; z-index: 5; }
+        .s1::before{ filter: brightness(1.22) saturate(1.28); }
         /* removed s2 for total of 5 */
         .stage-2 .balloonB{ opacity: 0.23; transform: translateY(0); }
 
         /* Active highlight: stronger bloom and front-most */
         .balloon.active, .balloonA.active, .balloonB.active{
           box-shadow: 0px -18px 26px #FFEFFC, 0px 26px 26px #CBD7F3, 0px 8px 140px #CFE9FF, 0 0 0 2px rgba(255,255,255,0.9);
-          filter: blur(0.5px);
+          filter: brightness(1.18) saturate(1.22);
+          transform: translateY(0) scale(1.06);
           opacity: 1;
-          z-index: 99;
+          z-index: 200;
         }
 
         /* End button styling */

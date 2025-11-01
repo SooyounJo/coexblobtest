@@ -473,7 +473,7 @@ const Ver2_4 = () => {
           inset: 0;
           border-radius: 50%;
           background: radial-gradient(75% 75% at 29% 28%, #C6FFB0 0%, #B4FDE5 55%, #CCF2FF 81%, #EEEFFF 100%);
-          filter: blur(22px) hue-rotate(0deg) saturate(1) brightness(1);
+          filter: blur(16px) hue-rotate(0deg) saturate(1) brightness(1);
         }
         .t2-ring {
           position: absolute;
@@ -486,9 +486,9 @@ const Ver2_4 = () => {
         }
 
         /* Gentle shimmering after morph completes */
-        .container.arrived .t2-blob { animation: t2Float 12s ease-in-out 2s infinite; }
-        .container.arrived .t2-blob::before { animation: t2Pulse 10s ease-in-out 2s infinite; }
-        .container.arrived .t2-ring { animation: t2Ring 10s ease-in-out 2s infinite alternate; }
+        .container.arrived .t2-blob { animation: t2Float 9s ease-in-out 2s infinite; }
+        .container.arrived .t2-blob::before { animation: t2Pulse 4.8s ease-in-out 2s infinite; }
+        .container.arrived .t2-ring { animation: t2Ring 8s ease-in-out 2s infinite alternate; }
 
         @keyframes t2Float {
           0%, 100% { transform: translate(-50%, -50%) scale(1); }
@@ -496,10 +496,10 @@ const Ver2_4 = () => {
         }
 
         @keyframes t2Pulse {
-          0%, 100% { filter: blur(22px) hue-rotate(0deg) saturate(1) brightness(1); }
-          25% { filter: blur(23px) hue-rotate(6deg) saturate(1.06) brightness(1.04); }
-          50% { filter: blur(24px) hue-rotate(10deg) saturate(1.12) brightness(1.08); }
-          75% { filter: blur(23px) hue-rotate(4deg) saturate(1.05) brightness(1.03); }
+          0%, 100% { filter: blur(16px) hue-rotate(0deg) saturate(1) brightness(1); }
+          25% { filter: blur(17px) hue-rotate(8deg) saturate(1.18) brightness(1.06); }
+          50% { filter: blur(18px) hue-rotate(14deg) saturate(1.28) brightness(1.12); }
+          75% { filter: blur(17px) hue-rotate(6deg) saturate(1.16) brightness(1.05); }
         }
 
         @keyframes t2Ring {
