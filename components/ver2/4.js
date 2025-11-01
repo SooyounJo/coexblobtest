@@ -19,9 +19,9 @@ const Ver2_4 = () => {
 
   useEffect(() => {
     if (arrived) {
-      // wait for the expansion (1.5s), then start 2s crossfade to T2-style
-      const t = setTimeout(() => setMorphT2(true), 1500);
-      return () => clearTimeout(t);
+      // Start crossfade immediately after expansion completes
+      setMorphT2(true);
+      return;
     }
     setMorphT2(false);
   }, [arrived]);
