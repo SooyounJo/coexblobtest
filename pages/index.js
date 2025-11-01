@@ -2,6 +2,7 @@ import Head from "next/head";
 import React, { useState } from 'react';
 import Ver1 from '../components/ver1';
 import Ver2 from '../components/ver2';
+import Ver3 from '../components/ver3';
 
 export default function Home() {
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -11,6 +12,8 @@ export default function Home() {
       return <Ver1 />;
     } else if (selectedVersion === 'ver2') {
       return <Ver2 />;
+    } else if (selectedVersion === 'ver3') {
+      return <Ver3 />;
     }
     return <div>Select a version to display.</div>;
   };
@@ -53,6 +56,21 @@ export default function Home() {
             }}
           >
             Ver2
+          </button>
+          <button 
+            onClick={() => setSelectedVersion('ver3')} 
+            style={{ 
+              padding: '10px 15px', 
+              fontSize: '16px', 
+              cursor: 'pointer', 
+              backgroundColor: selectedVersion === 'ver3' ? '#0070f3' : '#f0f0f0', 
+              color: selectedVersion === 'ver3' ? 'white' : 'black',
+              border: 'none',
+              borderRadius: '5px',
+              width: '100px'
+            }}
+          >
+            Ver3
           </button>
         </div>
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
