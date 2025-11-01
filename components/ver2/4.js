@@ -100,6 +100,8 @@ const Ver2_4 = () => {
 
           /* T2 final size = bottom blob final scale(2.4) * base wrapper (450px) */
           --t2-size: 1080px;
+          /* Match bottom blob final center position */
+          --t2-top: calc(44% - 400px);
 
         }
 
@@ -440,7 +442,7 @@ const Ver2_4 = () => {
         .t2-blob {
           position: absolute;
           left: 50%;
-          top: 50%;
+          top: var(--t2-top);
           width: var(--t2-size);
           height: var(--t2-size);
           transform: translate(-50%, -50%);
@@ -482,7 +484,7 @@ const Ver2_4 = () => {
             width: 500px;
             height: 500px;
           }
-          .container { --t2-size: 1200px; }
+          .container { --t2-size: 1200px; --t2-top: calc(50% - 400px); }
           .title { font-size: 48px; }
           .subtitle { font-size: 16px; }
           .top-blob {
@@ -499,7 +501,7 @@ const Ver2_4 = () => {
             width: 450px;
             height: 450px;
           }
-          .container { --t2-size: 1080px; }
+          .container { --t2-size: 1080px; --t2-top: calc(40% - 400px); }
           .title { font-size: 40px; }
           .subtitle { font-size: 15px; }
           .top-blob {
