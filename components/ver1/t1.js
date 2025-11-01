@@ -2,7 +2,7 @@ import React from 'react';
 
 
 
-const B3 = () => {
+const T1 = () => {
 
   return (
 
@@ -21,10 +21,10 @@ const B3 = () => {
         <div className="trail-blob trail-2"></div>
 
         <div className="trail-blob trail-1"></div>
-
         
 
         {/* 메인 블롭 - 그라디언트 블러 효과 */}
+        
 
         <div className="blob-wrapper">
 
@@ -358,4 +358,6 @@ const B3 = () => {
 
 };
 
-export default B3;
+
+
+export default T1;
