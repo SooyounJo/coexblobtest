@@ -169,9 +169,9 @@ const Ver2_2 = () => {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
-            width: calc(100vw - 24px);
+            width: min(80vw, 376px);
             top: auto;
-            bottom: max(12px, env(safe-area-inset-bottom, 12px));
+            bottom: calc(30px + env(safe-area-inset-bottom, 0px));
             gap: 10px;
             padding: 9px 14px;
           }
