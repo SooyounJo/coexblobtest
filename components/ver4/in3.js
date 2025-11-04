@@ -12,7 +12,7 @@ const In1 = () => {
 
   useEffect(() => {
     if (moved) {
-      const t = setTimeout(() => setArrived(true), 2000);
+      const t = setTimeout(() => setArrived(true), 1100);
       return () => clearTimeout(t);
     }
     setArrived(false);
@@ -63,10 +63,19 @@ const In1 = () => {
       {/* Core blobs (t3 style, same sizes/positions) */}
       <div className="blob-container" aria-hidden>
         <div className="blob-wrapper top-blob">
-          <div className="main-blob"><div className="ring-boost" /></div>
+          <div className="main-blob"><div className="ring-boost" /><div className="white-bloom" /></div>
         </div>
         <div className="blob-wrapper bottom-blob">
-          <div className="main-blob"><div className="ring-boost" /></div>
+          <div className="main-blob">
+            <div className="ring-boost" />
+            <div className="white-bloom" />
+            {/* gooey falling drips */}
+            <div className="goo" aria-hidden>
+              <div className="drip d1" />
+              <div className="drip d2" />
+              <div className="drip d3" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -79,6 +88,14 @@ const In1 = () => {
           overflow: hidden;
           --control-w: clamp(240px, 92vw, 360px);
           --control-h: clamp(44px, 9.6vw, 56px);
+          /* non-overlap sizing/placement for main blobs */
+          --blob-size: 560px;
+          --s-top: 1.35;
+          --s-bottom: 1.45;
+          --gap: 8px;
+          --r-top: calc(var(--blob-size) * var(--s-top) / 2);
+          --r-bottom: calc(var(--blob-size) * var(--s-bottom) / 2);
+          --offset: calc((var(--r-top) + var(--r-bottom) + var(--gap)) / 2);
         }
 
         /* hero copy */
@@ -191,9 +208,9 @@ const In1 = () => {
           opacity: 0;
           background: linear-gradient(
             to top,
-            rgba(206, 145, 255, 0.82) 0%,
-            rgba(244, 250, 248, 0.9) 55%,
-            rgba(230, 255, 241, 0.96) 100%
+            rgba(206, 145, 255, 0.16) 0%,
+            rgba(244, 250, 248, 0.46) 55%,
+            rgba(230, 255, 241, 0.54) 100%
           );
           transition: opacity 380ms ease-out;
           transform-origin: bottom center;
@@ -208,14 +225,14 @@ const In1 = () => {
           inset: 0;
           opacity: 0;
           transform-origin: bottom center;
-          transform: translateY(30%) scaleY(0.6);
+          transform: translateY(40%) scaleY(0.5);
           background: radial-gradient(60% 70% at 50% 80%, rgba(235, 201, 255, 0.0) 0%, rgba(199, 125, 255, 0.36) 52%, rgba(219, 165, 255, 0.64) 78%, rgba(255, 189, 228, 0.92) 100%);
           mix-blend-mode: screen;
           filter: saturate(1.45) blur(44px) drop-shadow(0 30px 56px rgba(186, 136, 255, 0.75));
           will-change: transform, opacity, filter;
           pointer-events: none;
         }
-        .container.arrived .pop-purple { animation: purpleSurge 520ms cubic-bezier(0.2, 0.9, 0.1, 1) both, purpleBreath 6s ease-in-out 0.8s infinite; }
+        .container.arrived .pop-purple { animation: purpleSurge 420ms cubic-bezier(0.2, 0.9, 0.1, 1) both, purpleBreath 6s ease-in-out 0.8s infinite; }
         .a-blob {
           position: absolute;
           width: 420px;
@@ -252,18 +269,23 @@ const In1 = () => {
         .floaters { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none; z-index: 0; }
         .floater {
           position: absolute;
-          width: 140px; height: 140px; border-radius: 50%;
-          background: radial-gradient(70% 70% at 48% 52%, rgba(255,255,255,0.95) 0%, rgba(230,255,247,0.75) 28%, rgba(0,0,0,0) 80%);
-          filter: blur(60px) saturate(1.02) brightness(1.02);
+          width: 180px; height: 180px; border-radius: 50%;
+          background: radial-gradient(68% 68% at 48% 52%, rgba(255,255,255,0.98) 0%, rgba(240,255,252,0.82) 28%, rgba(0,0,0,0) 82%);
+          filter: blur(50px) saturate(1.08) brightness(1.08);
+          mix-blend-mode: screen;
           opacity: 0;
           transform: translate(-50%, 0) scale(1);
-          transition: opacity 800ms ease;
+          transition: opacity 600ms ease;
         }
-        .floater.f1 { left: 18%; bottom: 8%; animation: floatA 8.2s ease-in-out 0.2s infinite alternate; }
-        .floater.f2 { left: 50%; bottom: 5%; animation: floatB 9.6s ease-in-out 0.0s infinite alternate; }
-        .floater.f3 { left: 80%; bottom: 9%; animation: floatC 7.8s ease-in-out 0.4s infinite alternate; }
-        .container.moved .floater { opacity: 0.18; }
-        .container.arrived .floater { opacity: 0.22; }
+        .floater.f1 { left: 18%; bottom: 8%; }
+        .floater.f2 { left: 50%; bottom: 5%; }
+        .floater.f3 { left: 80%; bottom: 9%; }
+        /* start floating only at pop moment */
+        .container.moved .floater { opacity: 0; animation: none; }
+        .container.arrived .floater { opacity: 0.36; }
+        .container.arrived .floater.f1 { animation: floatA 8.2s ease-in-out 0s infinite alternate; }
+        .container.arrived .floater.f2 { animation: floatB 9.6s ease-in-out 0.1s infinite alternate; }
+        .container.arrived .floater.f3 { animation: floatC 7.8s ease-in-out 0.2s infinite alternate; }
         @keyframes floatA {
           0% { transform: translate(-50%, 0) scale(1); }
           50% { transform: translate(calc(-50% + 12px), -10px) scale(1.04); }
@@ -282,17 +304,18 @@ const In1 = () => {
 
         /* main blobs */
         .blob-container { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1; contain: layout paint; will-change: transform; }
-        .blob-wrapper { position: absolute; width: 450px; height: 450px; left: 50%; will-change: transform; transform: translateZ(0); }
+        .blob-wrapper { position: absolute; width: var(--blob-size); height: var(--blob-size); left: 50%; will-change: transform; transform: translateZ(0); }
 
-        .top-blob { top: calc(-8% - 70px); transform: translate(-50%, -50%) scale(1.2); transition: top 1600ms cubic-bezier(0.4, 0, 1, 1), transform 1200ms cubic-bezier(0.22, 1, 0.36, 1); opacity: 0.9; will-change: transform; backface-visibility: hidden; }
-        .bottom-blob { top: calc(75% - 70px); transform: translate(-50%, -50%) scale(1.3); transition: top 1600ms cubic-bezier(0.4, 0, 1, 1), transform 1200ms cubic-bezier(0.22, 1, 0.36, 1); will-change: top, transform; backface-visibility: hidden; }
+        /* non-overlap landing positions (kiss but no overlap) */
+        .top-blob { top: calc(50% - var(--offset)); transform: translate(-50%, -50%) scale(var(--s-top)); transition: top 1100ms cubic-bezier(0.22, 1, 0.36, 1), transform 1100ms cubic-bezier(0.22, 1, 0.36, 1); opacity: 0.92; will-change: transform, top; backface-visibility: hidden; contain: layout paint; }
+        .bottom-blob { top: calc(50% + var(--offset)); transform: translate(-50%, -50%) scale(var(--s-bottom)); transition: top 1100ms cubic-bezier(0.22, 1, 0.36, 1), transform 1100ms cubic-bezier(0.22, 1, 0.36, 1); will-change: top, transform; backface-visibility: hidden; contain: layout paint; }
 
         /* upward move + in2-like gentle growth */
         .container.moved .top-blob { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); }
         .container.moved .bottom-blob { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3); }
-        /* large expansion with pop (overshoot then settle) */
-        .container.arrived .top-blob { transform: translate(-50%, -50%) scale(2.2); animation: popGrowTop 420ms cubic-bezier(0.26, 0.82, 0.2, 1) both; transition: none; }
-        .container.arrived .bottom-blob { transform: translate(-50%, -50%) scale(2.4); animation: popGrowBottom 420ms cubic-bezier(0.26, 0.82, 0.2, 1) both; transition: none; }
+        /* large expansion with pop (moderate) */
+        .container.arrived .top-blob { transform: translate(-50%, -50%) scale(1.95); animation: popGrowTop 260ms cubic-bezier(0.2, 0.9, 0.1, 1) both; transition: none; }
+        .container.arrived .bottom-blob { transform: translate(-50%, -50%) scale(2.10); animation: popGrowBottom 260ms cubic-bezier(0.2, 0.9, 0.1, 1) both; transition: none; }
 
         /* Register CSS custom properties used by t3 effect */
         @property --start-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
@@ -325,7 +348,7 @@ const In1 = () => {
           --start-anim: clamp(0%, calc(var(--start) + var(--start-wobble)), 90%);
           --end-anim: clamp(0%, calc(var(--end) + var(--end-wobble)), 100%);
           --feather-anim: clamp(0%, calc(var(--feather) + var(--feather-wobble)), 25%);
-          animation: ringPulse 6s ease-in-out infinite;
+          animation: none;
           filter: saturate(1.14) brightness(1.05);
         }
         .main-blob::before,
@@ -377,11 +400,51 @@ const In1 = () => {
                   mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
         }
 
-        /* stronger blur and tone flow while moving, then stabilize */
-        .container.moved .main-blob {
-          animation: ringPulse 6s ease-in-out infinite, centerFlow 1200ms ease-out 0s 1 forwards, blurRise 1600ms cubic-bezier(0.4, 0, 1, 1) 0s 1 forwards;
+        /* white bloom overlay that expands wider after pop */
+        .main-blob .white-bloom {
+          position: absolute;
+          inset: -6%;
+          border-radius: 50%;
+          pointer-events: none;
+          background: radial-gradient(
+            circle at 50% 78%,
+            rgba(255,255,255,0.0) 0 56%,
+            rgba(255,255,255,0.55) 72%,
+            rgba(255,255,255,0.0) 92%
+          );
+          mix-blend-mode: screen;
+          filter: blur(18px) saturate(1.15);
+          opacity: 0;
+          transform: translateY(8%) scale(0.70);
+          z-index: 2;
+          will-change: transform, opacity, filter;
         }
-        .container.arrived .main-blob { --center-y: 42%; --blur: 60px; --boost: 1.9; filter: saturate(1.06) brightness(1.03); }
+        .container.arrived .white-bloom { opacity: 0.18; animation: whiteBloomWide 2200ms ease-in-out 0s infinite; }
+
+        @keyframes whiteBloomWide {
+          0%   { opacity: 0.14; transform: translateY(8%) scale(0.70); filter: blur(18px) saturate(1.15); }
+          45%  { opacity: 0.28; transform: translateY(2%) scale(1.18); filter: blur(24px) saturate(1.22); }
+          100% { opacity: 0.16; transform: translateY(0) scale(1.35); filter: blur(28px) saturate(1.18); }
+        }
+
+        /* gooey drips falling from bottom of main blob */
+        .main-blob .goo { position: absolute; left: 50%; top: 72%; width: 66%; height: 40%; transform: translateX(-50%); filter: url(#gooey); opacity: 0; pointer-events: none; overflow: visible; }
+        .container.arrived .main-blob .goo { opacity: 1; }
+        .goo .drip { position: absolute; bottom: 0; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0) 80%); mix-blend-mode: screen; filter: blur(14px) saturate(1.18); opacity: 0; }
+        .goo .drip.d1 { left: 26%; animation: dripY 2.6s ease-in 0.0s infinite; }
+        .goo .drip.d2 { left: 50%; animation: dripY 2.8s ease-in 0.4s infinite; }
+        .goo .drip.d3 { left: 72%; animation: dripY 2.4s ease-in 0.2s infinite; }
+        @keyframes dripY {
+          0% { transform: translateY(0) scale(1.00); opacity: 0; }
+          10% { opacity: 0.22; }
+          70% { transform: translateY(120px) scale(0.92); opacity: 0.26; }
+          100% { transform: translateY(160px) scale(0.86); opacity: 0; }
+        }
+
+        /* stronger blur and tone flow while moving, then stabilize */
+        .container:not(.moved) .main-blob { animation: ringPulse 6s ease-in-out infinite; }
+        .container.moved .main-blob { animation: centerFlow 1000ms ease-out 0s 1 forwards, blurRise 1100ms cubic-bezier(0.22, 1, 0.36, 1) 0s 1 forwards; }
+        .container.arrived .main-blob { --center-y: 42%; --blur: 60px; --boost: 1.9; filter: saturate(1.06) brightness(1.03); animation: ringPulse 6s ease-in-out 0.4s infinite; }
 
         /* lighten heavy shadow during movement to reduce paint cost */
         .container.moved .main-blob::after { filter: blur(calc(var(--blur) + var(--blur-wobble))); }
@@ -422,9 +485,9 @@ const In1 = () => {
 
         /* purple ring surge at pop moment */
         @keyframes purpleSurge {
-          0% { transform: translateY(30%) scaleY(0.6); opacity: 0; filter: saturate(1.0) blur(44px) drop-shadow(0 18px 34px rgba(186,136,255,0.5)); }
-          70% { opacity: 1; filter: saturate(1.8) blur(56px) drop-shadow(0 34px 64px rgba(186,136,255,0.9)); }
-          100% { transform: translateY(0) scaleY(1.0); opacity: 1; filter: saturate(1.55) blur(44px) drop-shadow(0 28px 52px rgba(186,136,255,0.78)); }
+          0% { transform: translateY(40%) scaleY(0.5); opacity: 0; filter: saturate(1.0) blur(44px) drop-shadow(0 18px 34px rgba(186,136,255,0.5)); }
+          60% { transform: translateY(6%) scaleY(1.06); opacity: 1; filter: saturate(1.9) blur(56px) drop-shadow(0 36px 66px rgba(186,136,255,0.92)); }
+          100% { transform: translateY(0) scaleY(1.0); opacity: 1; filter: saturate(1.6) blur(44px) drop-shadow(0 28px 52px rgba(186,136,255,0.78)); }
         }
 
         /* continuous purple breathing after arrival */
@@ -435,14 +498,14 @@ const In1 = () => {
 
         /* pop overshoot animations */
         @keyframes popGrowTop {
-          0% { transform: translate(-50%, -50%) scale(1.2); }
-          70% { transform: translate(-50%, -50%) scale(2.5); }
-          100% { transform: translate(-50%, -50%) scale(2.2); }
+          0% { transform: translate(-50%, -50%) scale(var(--s-top)); }
+          62% { transform: translate(-50%, -50%) scale(2.15); }
+          100% { transform: translate(-50%, -50%) scale(1.95); }
         }
         @keyframes popGrowBottom {
-          0% { transform: translate(-50%, -50%) scale(1.3); }
-          70% { transform: translate(-50%, -50%) scale(2.7); }
-          100% { transform: translate(-50%, -50%) scale(2.4); }
+          0% { transform: translate(-50%, -50%) scale(var(--s-bottom)); }
+          62% { transform: translate(-50%, -50%) scale(2.30); }
+          100% { transform: translate(-50%, -50%) scale(2.10); }
         }
 
 
@@ -450,13 +513,13 @@ const In1 = () => {
 
         /* responsive sizing */
         @media (max-width: 768px) {
-          .blob-wrapper { width: 500px; height: 500px; }
+          .container { --blob-size: 520px; }
           .top-blob { top: calc(0% - 70px); transform: translate(-50%, -50%) scale(1.3); }
           .bottom-blob { top: calc(75% - 70px); transform: translate(-50%, -50%) scale(1.4); }
           .container.moved .top-blob, .container.moved .bottom-blob { transform: translate(-50%, -50%) scale(1.5); }
         }
         @media (max-width: 480px) {
-          .blob-wrapper { width: 450px; height: 450px; }
+          .container { --blob-size: 480px; }
           .title { font-size: 40px; }
           .subtitle { font-size: 15px; }
           .top-blob { top: calc(-2% - 70px); transform: translate(-50%, -50%) scale(1.35); }
@@ -464,6 +527,16 @@ const In1 = () => {
           .container.moved .top-blob, .container.moved .bottom-blob { transform: translate(-50%, -50%) scale(1.5); }
         }
       `}</style>
+      {/* SVG defs for gooey filter */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+        <defs>
+          <filter id="gooey">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" result="goo" />
+            <feBlend in="SourceGraphic" in2="goo" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   );
 };
