@@ -48,15 +48,10 @@ const Ver2_4 = () => {
         {/* 위쪽 블롭 */}
 
         <div className="blob-wrapper top-blob">
-
           <div className="trail-blob t1"></div>
-
           <div className="trail-blob t2"></div>
-
           <div className="main-blob color1"></div>
-
           <div className="main-blob color2"></div>
-
         </div>
 
         
@@ -64,15 +59,10 @@ const Ver2_4 = () => {
         {/* 아래쪽 블롭 */}
 
         <div className="blob-wrapper bottom-blob">
-
           <div className="trail-blob t1"></div>
-
           <div className="trail-blob t2"></div>
-
           <div className="main-blob color1"></div>
-
           <div className="main-blob color2"></div>
-
         </div>
 
       </div>
@@ -261,7 +251,7 @@ const Ver2_4 = () => {
 
         .top-blob {
 
-          top: var(--initial-top-top-blob);
+          top: calc(-8% - 70px);
 
           transform: translate(-50%, -50%) scale(1.2);
 
@@ -274,7 +264,7 @@ const Ver2_4 = () => {
 
         .bottom-blob {
 
-          top: var(--initial-top-bottom-blob);
+          top: calc(75% - 70px);
 
           transform: translate(-50%, -50%) scale(1.3);
 
@@ -337,29 +327,21 @@ const Ver2_4 = () => {
         /* 첫 번째 색상 - 기존 그라디언트 (명도↑ 채도↑) */
 
         .main-blob.color1 {
-
-          background: radial-gradient(70.32% 70.88% at 47.16% 93.14%, #B8FFF1 0%, #A2F8E1 30%, #64FFAF 60%, #A9F4DC 85%, #CFF9EE 100%);
-
+          background: radial-gradient(70.32% 70.88% at 47.16% 93.14%, #FFFEC4 0%, #B7FFD0 30%, #64FFAF 60%, #B7FEDC 85%, #EDFFE5 100%);
         }
 
         /* 두 번째 색상 - 이미지 그라디언트 (명도↑ 채도↑) */
 
         .main-blob.color2 {
-
-          background: radial-gradient(70.32% 70.88% at 47.16% 93.14%, #AEFFF2 0%, #9EF6E6 28%, #84FFC6 58%, #B6FAEA 85%, #D8FFF6 100%);
-
+          background: radial-gradient(70.32% 70.88% at 47.16% 93.14%, #99FFEE 0%, #FFFFBB 38%, #99FFEE 76%, #99FF99 91%, #99FFEE 100%);
         }
 
         /* 위쪽 블롭의 main-blob은 회전 없음 */
 
         .top-blob .main-blob {
-
           transform: rotate(0deg);
-
           filter: blur(35px) hue-rotate(0deg) brightness(1) saturate(1);
-
-          animation: topColorShift 8s ease-in-out infinite;
-
+          animation: topColorShift 12s ease-in-out infinite;
         }
 
         .top-blob .main-blob.color2 {
@@ -371,13 +353,9 @@ const Ver2_4 = () => {
         /* 아래쪽 블롭의 main-blob은 180도 회전 */
 
         .bottom-blob .main-blob {
-
           transform: rotate(-180deg);
-
           filter: blur(5px) hue-rotate(0deg) brightness(1) saturate(1);
-
-          animation: bottomColorShift 8s ease-in-out infinite;
-
+          animation: bottomColorShift 12s ease-in-out infinite;
         }
 
         .bottom-blob .main-blob.color2 {
@@ -388,59 +366,17 @@ const Ver2_4 = () => {
 
         /* (opacity) 페이드 키프레임 제거, 위로 이동은 transition으로 처리 */
         @keyframes topColorShift {
-
-          0%, 100% {
-
-            filter: blur(35px) hue-rotate(0deg) brightness(1) saturate(1);
-
-          }
-
-          25% {
-
-            filter: blur(37px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
-
-          }
-
-          50% {
-
-            filter: blur(40px) hue-rotate(10deg) brightness(1.15) saturate(1.2);
-
-          }
-
-          75% {
-
-            filter: blur(37px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
-
-          }
-
+          0%, 100% { filter: blur(35px) hue-rotate(0deg) brightness(1) saturate(1); }
+          25% { filter: blur(37px) hue-rotate(5deg) brightness(1.08) saturate(1.1); }
+          50% { filter: blur(40px) hue-rotate(10deg) brightness(1.15) saturate(1.2); }
+          75% { filter: blur(37px) hue-rotate(5deg) brightness(1.08) saturate(1.1); }
         }
 
         @keyframes bottomColorShift {
-
-          0%, 100% {
-
-            filter: blur(5px) hue-rotate(0deg) brightness(1) saturate(1);
-
-          }
-
-          25% {
-
-            filter: blur(6px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
-
-          }
-
-          50% {
-
-            filter: blur(7px) hue-rotate(10deg) brightness(1.15) saturate(1.2);
-
-          }
-
-          75% {
-
-            filter: blur(6px) hue-rotate(5deg) brightness(1.08) saturate(1.1);
-
-          }
-
+          0%, 100% { filter: blur(5px) hue-rotate(0deg) brightness(1) saturate(1); }
+          25% { filter: blur(6px) hue-rotate(5deg) brightness(1.08) saturate(1.1); }
+          50% { filter: blur(7px) hue-rotate(10deg) brightness(1.15) saturate(1.2); }
+          75% { filter: blur(6px) hue-rotate(5deg) brightness(1.08) saturate(1.1); }
         }
 
         /* T2 overlay crossfade at final size */
@@ -520,15 +456,8 @@ const Ver2_4 = () => {
         }
 
         /* Responsive adjustments for the final position */
-        .top-blob {
-          --initial-top-top-blob: calc(-8% - 70px);
-          --final-top-top-blob: 20%; /* Adjusted for being slightly above center */
-        }
-
-        .bottom-blob {
-          --initial-top-bottom-blob: calc(75% - 70px);
-          --final-top-bottom-blob: 45%; /* Adjusted for being slightly above center and clipped */
-        }
+        .top-blob { /* final target hint for overlay; base position matches 2.js */ }
+        .bottom-blob { /* final target hint for overlay; base position matches 2.js */ }
 
         /* 반응형 디자인 */
         @media (max-width: 768px) {
@@ -539,14 +468,8 @@ const Ver2_4 = () => {
           .container { --t2-size: 1200px; --t2-top: calc(50% - 400px); }
           .title { font-size: 48px; }
           .subtitle { font-size: 16px; }
-          .top-blob {
-            --initial-top-top-blob: calc(0% - 70px);
-            --final-top-top-blob: 25%; /* Mobile adjustment */
-          }
-          .bottom-blob {
-            --initial-top-bottom-blob: calc(75% - 70px);
-            --final-top-bottom-blob: 50%; /* Mobile adjustment */
-          }
+          .top-blob { top: calc(0% - 70px); }
+          .bottom-blob { top: calc(75% - 70px); }
         }
         @media (max-width: 480px) {
           .blob-wrapper {
@@ -556,14 +479,8 @@ const Ver2_4 = () => {
           .container { --t2-size: 1080px; --t2-top: calc(40% - 400px); }
           .title { font-size: 40px; }
           .subtitle { font-size: 15px; }
-          .top-blob {
-            --initial-top-top-blob: calc(-2% - 70px);
-            --final-top-top-blob: 20%; /* Mobile adjustment */
-          }
-          .bottom-blob {
-            --initial-top-bottom-blob: calc(72% - 70px);
-            --final-top-bottom-blob: 40%; /* Mobile adjustment */
-          }
+          .top-blob { top: calc(-2% - 70px); }
+          .bottom-blob { top: calc(72% - 70px); }
         }
 
       `}</style>

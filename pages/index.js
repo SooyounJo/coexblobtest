@@ -7,6 +7,8 @@ import Ver2_3 from '../components/ver2/3';
 import Ver2_4 from '../components/ver2/4';
 import Ver2_5 from '../components/ver2/5';
 import Ver2_6 from '../components/ver2/6';
+import Ver3 from '../components/ver3';
+import Ver4 from '../components/ver4';
 
 export default function Home() {
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -32,6 +34,10 @@ export default function Home() {
         default:
           return <div>Select a Ver2 component to display.</div>;
       }
+    } else if (selectedVersion === 'ver3') {
+      return <Ver3 />;
+    } else if (selectedVersion === 'ver4') {
+      return <Ver4 />;
     }
     return <div>Select a version to display.</div>;
   };
@@ -40,12 +46,12 @@ export default function Home() {
     <button
       onClick={onClick}
       style={{
-        width: 48,
-        height: 48,
+        width: 36,
+        height: 36,
         borderRadius: '50%',
         border: 'none',
         cursor: 'pointer',
-        fontSize: 16,
+        fontSize: 13,
         backgroundColor: active ? '#0070f3' : '#f0f0f0',
         color: active ? 'white' : 'black',
         boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
@@ -64,44 +70,17 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <main style={{ display: 'flex', height: '100vh', width: '100vw' }}>
-        {selectedVersion !== 'ver2' && (
-          <div style={{ padding: '20px', borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button 
-              onClick={() => { setSelectedVersion('ver1'); setSelectedVer2Component(null); }}
-              style={{ 
-                padding: '10px 15px', 
-                fontSize: '16px', 
-                cursor: 'pointer', 
-                backgroundColor: selectedVersion === 'ver1' ? '#0070f3' : '#f0f0f0', 
-                color: selectedVersion === 'ver1' ? 'white' : 'black',
-                border: 'none',
-                borderRadius: '5px',
-                width: '100px'
-              }}
-            >
-              Ver1
-            </button>
-            <button 
-              onClick={() => { setSelectedVersion('ver2'); setSelectedVer2Component('ver2_1'); }}
-              style={{ 
-                padding: '10px 15px', 
-                fontSize: '16px', 
-                cursor: 'pointer', 
-                backgroundColor: selectedVersion === 'ver2' ? '#0070f3' : '#f0f0f0', 
-                color: selectedVersion === 'ver2' ? 'white' : 'black',
-                border: 'none',
-                borderRadius: '5px',
-                width: '100px'
-              }}
-            >
-              Ver2
-            </button>
-          </div>
-        )}
         <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           {renderContent()}
+          {/* Floating version buttons attached to interface (top-left) */}
+          <div style={{ position: 'absolute', left: 10, top: 10, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 5001 }}>
+            <CircleButton label="V1" active={selectedVersion === 'ver1'} onClick={() => { setSelectedVersion('ver1'); setSelectedVer2Component(null); }} />
+            <CircleButton label="V2" active={selectedVersion === 'ver2'} onClick={() => { setSelectedVersion('ver2'); setSelectedVer2Component('ver2_1'); }} />
+            <CircleButton label="V3" active={selectedVersion === 'ver3'} onClick={() => { setSelectedVersion('ver3'); setSelectedVer2Component(null); }} />
+            <CircleButton label="V4" active={selectedVersion === 'ver4'} onClick={() => { setSelectedVersion('ver4'); setSelectedVer2Component(null); }} />
+          </div>
           {selectedVersion === 'ver2' && (
-            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 12, zIndex: 5000 }}>
+            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5000 }}>
               <CircleButton label="1" active={selectedVer2Component === 'ver2_1'} onClick={() => setSelectedVer2Component('ver2_1')} />
               <CircleButton label="2" active={selectedVer2Component === 'ver2_2'} onClick={() => setSelectedVer2Component('ver2_2')} />
               <CircleButton label="3" active={selectedVer2Component === 'ver2_3'} onClick={() => setSelectedVer2Component('ver2_3')} />

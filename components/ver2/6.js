@@ -252,11 +252,11 @@ const Ver2_6 = () => {
         }
         .container.intro .blob-container { opacity: 1; }
         .blob-wrapper { position: absolute; width: 450px; height: 450px; left: 50%; }
-        .top-blob { top: -70%; transform: translate(-50%, -50%) scale(1.2); transition: top var(--enter-duration) var(--enter-ease), transform 900ms cubic-bezier(0.22, 1, 0.36, 1); }
-        .bottom-blob { top: 140%; transform: translate(-50%, -50%) scale(1.3); transition: top var(--enter-duration) var(--enter-ease), transform 900ms cubic-bezier(0.22, 1, 0.36, 1); }
+        .top-blob { top: -70%; transform: translate(-50%, -50%) scale(1.2); transition: top var(--enter-duration) var(--enter-ease); }
+        .bottom-blob { top: 140%; transform: translate(-50%, -50%) scale(1.3); transition: top var(--enter-duration) var(--enter-ease); }
         /* Settle to 2.js default positions */
-        .container.intro .top-blob { top: calc(-8% - 70px); transform: translate(-50%, -50%) scale(1.5); }
-        .container.intro .bottom-blob { top: calc(75% - 70px); transform: translate(-50%, -50%) scale(1.65); }
+        .container.intro .top-blob { top: calc(-8% - 70px); animation: springTop 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 both; }
+        .container.intro .bottom-blob { top: calc(75% - 70px); animation: springBottom 950ms cubic-bezier(0.22, 1, 0.36, 1) 0ms 1 both; }
         .main-blob { position: absolute; inset: 0; border-radius: 50%; }
         /* Orientation to match 2.js */
         .top-blob .main-blob { transform: rotate(0deg); }
@@ -272,6 +272,20 @@ const Ver2_6 = () => {
         .container.intro .bottom-blob .main-blob { filter: blur(1px) hue-rotate(0deg) brightness(1) saturate(1); }
         .main-blob.color1 { background: radial-gradient(70.32% 70.88% at 47.16% 93.14%, #FFFEC4 0%, #B7FFD0 30%, #64FFAF 60%, #B7FEDC 85%, #EDFFE5 100%); }
         .main-blob.color2 { background: radial-gradient(70.32% 70.88% at 47.16% 93.14%, #99FFEE 0%, #FFFFBB 38%, #99FFEE 76%, #99FF99 91%, #99FFEE 100%); }
+
+        /* Spring keyframes – slight overshoot and settle to final scales */
+        @keyframes springTop {
+          0% { transform: translate(-50%, -50%) scale(1.2); }
+          60% { transform: translate(-50%, -52.2%) scale(1.62); } /* overshoot up & bigger */
+          82% { transform: translate(-50%, -49.2%) scale(1.46); }
+          100% { transform: translate(-50%, -50%) scale(1.5); }
+        }
+        @keyframes springBottom {
+          0% { transform: translate(-50%, -50%) scale(1.3); }
+          60% { transform: translate(-50%, -47.6%) scale(1.72); } /* overshoot down & bigger */
+          82% { transform: translate(-50%, -50.6%) scale(1.58); }
+          100% { transform: translate(-50%, -50%) scale(1.65); }
+        }
       `}</style>
     </div>
 
