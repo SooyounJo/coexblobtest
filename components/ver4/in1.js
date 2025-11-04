@@ -3,9 +3,7 @@ import React, { useState, useEffect } from 'react';
 const In1 = () => {
   const [moved, setMoved] = useState(false);
   const [arrived, setArrived] = useState(false);
-  const waveModes = ['orbit', 'ring', 'swirl', 'hue', 'noise'];
-  const [waveIdx, setWaveIdx] = useState(0);
-  const waveClass = `wave-${waveModes[waveIdx]}`;
+  // fixed orbit mode (remove dev toggles/labels)
 
   useEffect(() => {
     if (moved) {
@@ -15,16 +13,7 @@ const In1 = () => {
     setArrived(false);
   }, [moved]);
 
-  // dev: press 'w' to cycle wave modes one by one
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'w' || e.key === 'W') {
-        setWaveIdx((v) => (v + 1) % waveModes.length);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // removed dev key toggles
 
   // prevent page scroll while this view is mounted
   useEffect(() => {
@@ -45,7 +34,7 @@ const In1 = () => {
   }, []);
 
   return (
-    <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''} ${waveClass}`}>
+    <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''} wave-orbit`}>
       {/* 텍스트 오버레이 (ver2/2 그대로) */}
       <div className="hero">
         <div className="eyebrow">Welcome To</div>
@@ -494,8 +483,8 @@ const In1 = () => {
           0% { --t2-sat: 1.42; --t2-bri: 0.96; }
           100% { --t2-sat: 1.10; --t2-bri: 1.04; }
         }
-        /* after pop: medium blur */
-        @keyframes t2BlurSettle { 0% { --t2-blur: 18px; } 100% { --t2-blur: 20px; } }
+        /* after pop: strong blur */
+        @keyframes t2BlurSettle { 0% { --t2-blur: 18px; } 100% { --t2-blur: 40px; } }
 
         /* strong core pulse for shader-like feel */
         @keyframes t2CorePulseStrong {
@@ -541,12 +530,16 @@ const In1 = () => {
         }
         .t2-bloom.b2 { animation-delay: 0.8s; }
         .container.moved .t2-bloom { animation: none; opacity: 0; }
-        .container.arrived .t2-bloom { animation: none; opacity: 0.08; }
+        .container.arrived .t2-bloom { animation: bloomPulseWide 2.2s ease-in-out 0s infinite; opacity: 0.16; transform: scale(0.8); filter: blur(16px) saturate(1.2) brightness(1.06); }
 
         @keyframes bloomPulse {
           0% { opacity: 0.34; transform: scale(0.35); filter: blur(10px) saturate(1.18) brightness(1.06); }
           55% { opacity: 0.18; transform: scale(1.10); filter: blur(20px) saturate(1.26) brightness(1.10); }
           100% { opacity: 0; transform: scale(1.55); filter: blur(28px) saturate(1.12) brightness(1.05); }
+        }
+        @keyframes bloomPulseWide {
+          0%, 100% { opacity: 0.14; transform: scale(0.80); filter: blur(16px) saturate(1.20) brightness(1.06); }
+          50% { opacity: 0.26; transform: scale(1.20); filter: blur(26px) saturate(1.30) brightness(1.10); }
         }
 
         @keyframes t2PopSpringTop {
@@ -594,12 +587,7 @@ const In1 = () => {
           </filter>
         </defs>
       </svg>
-      <div className="mode-chip" aria-hidden>
-        {waveModes[waveIdx]}
-      </div>
-      <style jsx>{`
-        .mode-chip { position: absolute; top: 10px; right: 12px; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,0.72); color: #333; font-weight: 700; font-size: 12px; z-index: 20; pointer-events: none; border: 1px solid rgba(0,0,0,0.06); }
-      `}</style>
+      
     </div>
   );
 };
