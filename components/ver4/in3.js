@@ -66,7 +66,16 @@ const In1 = () => {
           <div className="main-blob"><div className="ring-boost" /><div className="white-bloom" /></div>
         </div>
         <div className="blob-wrapper bottom-blob">
-          <div className="main-blob"><div className="ring-boost" /><div className="white-bloom" /></div>
+          <div className="main-blob">
+            <div className="ring-boost" />
+            <div className="white-bloom" />
+            {/* gooey falling drips */}
+            <div className="goo" aria-hidden>
+              <div className="drip d1" />
+              <div className="drip d2" />
+              <div className="drip d3" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -260,18 +269,23 @@ const In1 = () => {
         .floaters { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; pointer-events: none; z-index: 0; }
         .floater {
           position: absolute;
-          width: 140px; height: 140px; border-radius: 50%;
-          background: radial-gradient(70% 70% at 48% 52%, rgba(255,255,255,0.95) 0%, rgba(230,255,247,0.75) 28%, rgba(0,0,0,0) 80%);
-          filter: blur(60px) saturate(1.02) brightness(1.02);
+          width: 180px; height: 180px; border-radius: 50%;
+          background: radial-gradient(68% 68% at 48% 52%, rgba(255,255,255,0.98) 0%, rgba(240,255,252,0.82) 28%, rgba(0,0,0,0) 82%);
+          filter: blur(50px) saturate(1.08) brightness(1.08);
+          mix-blend-mode: screen;
           opacity: 0;
           transform: translate(-50%, 0) scale(1);
-          transition: opacity 800ms ease;
+          transition: opacity 600ms ease;
         }
-        .floater.f1 { left: 18%; bottom: 8%; animation: floatA 8.2s ease-in-out 0.2s infinite alternate; }
-        .floater.f2 { left: 50%; bottom: 5%; animation: floatB 9.6s ease-in-out 0.0s infinite alternate; }
-        .floater.f3 { left: 80%; bottom: 9%; animation: floatC 7.8s ease-in-out 0.4s infinite alternate; }
-        .container.moved .floater { opacity: 0.18; animation-play-state: paused; }
-        .container.arrived .floater { opacity: 0.22; animation-play-state: running; }
+        .floater.f1 { left: 18%; bottom: 8%; }
+        .floater.f2 { left: 50%; bottom: 5%; }
+        .floater.f3 { left: 80%; bottom: 9%; }
+        /* start floating only at pop moment */
+        .container.moved .floater { opacity: 0; animation: none; }
+        .container.arrived .floater { opacity: 0.36; }
+        .container.arrived .floater.f1 { animation: floatA 8.2s ease-in-out 0s infinite alternate; }
+        .container.arrived .floater.f2 { animation: floatB 9.6s ease-in-out 0.1s infinite alternate; }
+        .container.arrived .floater.f3 { animation: floatC 7.8s ease-in-out 0.2s infinite alternate; }
         @keyframes floatA {
           0% { transform: translate(-50%, 0) scale(1); }
           50% { transform: translate(calc(-50% + 12px), -10px) scale(1.04); }
@@ -413,6 +427,20 @@ const In1 = () => {
           100% { opacity: 0.16; transform: translateY(0) scale(1.35); filter: blur(28px) saturate(1.18); }
         }
 
+        /* gooey drips falling from bottom of main blob */
+        .main-blob .goo { position: absolute; left: 50%; top: 72%; width: 66%; height: 40%; transform: translateX(-50%); filter: url(#gooey); opacity: 0; pointer-events: none; overflow: visible; }
+        .container.arrived .main-blob .goo { opacity: 1; }
+        .goo .drip { position: absolute; bottom: 0; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0) 80%); mix-blend-mode: screen; filter: blur(14px) saturate(1.18); opacity: 0; }
+        .goo .drip.d1 { left: 26%; animation: dripY 2.6s ease-in 0.0s infinite; }
+        .goo .drip.d2 { left: 50%; animation: dripY 2.8s ease-in 0.4s infinite; }
+        .goo .drip.d3 { left: 72%; animation: dripY 2.4s ease-in 0.2s infinite; }
+        @keyframes dripY {
+          0% { transform: translateY(0) scale(1.00); opacity: 0; }
+          10% { opacity: 0.22; }
+          70% { transform: translateY(120px) scale(0.92); opacity: 0.26; }
+          100% { transform: translateY(160px) scale(0.86); opacity: 0; }
+        }
+
         /* stronger blur and tone flow while moving, then stabilize */
         .container:not(.moved) .main-blob { animation: ringPulse 6s ease-in-out infinite; }
         .container.moved .main-blob { animation: centerFlow 1000ms ease-out 0s 1 forwards, blurRise 1100ms cubic-bezier(0.22, 1, 0.36, 1) 0s 1 forwards; }
@@ -499,6 +527,16 @@ const In1 = () => {
           .container.moved .top-blob, .container.moved .bottom-blob { transform: translate(-50%, -50%) scale(1.5); }
         }
       `}</style>
+      {/* SVG defs for gooey filter */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+        <defs>
+          <filter id="gooey">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" result="goo" />
+            <feBlend in="SourceGraphic" in2="goo" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   );
 };
