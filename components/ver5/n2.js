@@ -73,7 +73,7 @@ const N4 = () => {
         >
           <div className="ring-boost" />
           <div className="pulse-rim" aria-hidden />
-        </div>
+      </div>
         <div
           className="blob bottom"
           style={{

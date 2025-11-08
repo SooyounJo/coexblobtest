@@ -151,7 +151,7 @@ const BlobMotion = () => {
         }
         .container.wave-noise .t2-blob::before { filter: url(#t2Displace) blur(var(--t2-blur)) hue-rotate(var(--t2-hue)) saturate(var(--t2-sat)) brightness(var(--t2-bri)); }
         .container:not(.moved) .t2-blob::before { --t2-sat: 1.35; --t2-bri: 0.98; }
-        .t2-blob.top::before { --t2-blur: 12px; }
+        .t2-blob.top::before { --t2-blur: 4px; }
         .container:not(.moved) .t2-blob.bottom::before { --t2-blur: 0px; filter: none; }
         .container:not(.moved) .t2-blob { animation: orbitHotspot 12s ease-in-out infinite; }
         .container:not(.moved) .t2-blob.bottom .t2-core { animation: t2Breathe 3.4s ease-in-out infinite; }
