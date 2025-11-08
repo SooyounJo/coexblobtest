@@ -13,6 +13,7 @@ import Ver5_n1 from '../components/ver5/n1';
 import Ver5_n2 from '../components/ver5/n2';
 import Ver5_n3 from '../components/ver5/n3';
 import Ver5_n4 from '../components/ver5/n4';
+import Ver5_n5 from '../components/ver5/n5';
 
 export default function Home() {
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -53,6 +54,8 @@ export default function Home() {
           return <Ver5_n3 />;
         case 'n4':
           return <Ver5_n4 />;
+        case 'n5':
+          return <Ver5_n5 />;
         default:
           return <div>Select a Ver5 component to display.</div>;
       }
@@ -114,6 +117,7 @@ export default function Home() {
               <CircleButton label="n2" active={selectedVer5Component === 'n2'} onClick={() => setSelectedVer5Component('n2')} />
               <CircleButton label="n3" active={selectedVer5Component === 'n3'} onClick={() => setSelectedVer5Component('n3')} />
               <CircleButton label="n4" active={selectedVer5Component === 'n4'} onClick={() => setSelectedVer5Component('n4')} />
+              <CircleButton label="n5" active={selectedVer5Component === 'n5'} onClick={() => setSelectedVer5Component('n5')} />
             </div>
           )}
         </div>
