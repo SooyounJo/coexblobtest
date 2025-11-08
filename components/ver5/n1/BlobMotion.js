@@ -126,8 +126,8 @@ const BlobMotion = () => {
         .container.moved .t2-blob.top { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); }
         .container.moved .t2-blob.bottom { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3); }
 
-        .container.arrived .t2-blob.top { animation: t2PopSpringTop 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheTop 6.8s ease-in-out 1000ms infinite; }
-        .container.arrived .t2-blob.bottom { animation: t2PopSpringBottom 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheBottom 6.8s ease-in-out 1000ms infinite; }
+        .container.arrived .t2-blob.top { animation: t2PopSpringTop 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheTop 6.8s ease-in-out 1900ms infinite, orbitHotspot 3.8s ease-in-out 2200ms infinite; }
+        .container.arrived .t2-blob.bottom { animation: t2PopSpringBottom 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheBottom 6.8s ease-in-out 1900ms infinite, orbitHotspot 3.8s ease-in-out 2200ms infinite; }
 
         /* anim variables */
         @property --t2-blur { syntax: '<length>'; inherits: true; initial-value: 2px; }
@@ -269,8 +269,8 @@ const BlobMotion = () => {
           100% { opacity: 0.50; filter: blur(32px) saturate(1.35) brightness(1.06); }
         }
 
-        .container.wave-orbit .t2-blob { animation: orbitHotspot 3.8s ease-in-out infinite; }
-        .container.wave-orbit:not(.arrived) .t2-blob { animation: none; }
+        .container.wave-orbit .t2-blob { /* orbit handled in arrived rule to avoid overriding pop */ }
+        .container.wave-orbit:not(.arrived) .t2-blob { /* no orbit before arrival */ }
         @keyframes orbitHotspot {
           0%   { --gX: 26%; --gY: 28%; }
           25%  { --gX: 74%; --gY: 34%; }
@@ -398,14 +398,12 @@ const BlobMotion = () => {
 
         @keyframes t2PopSpringTop {
           0% { transform: translate(-50%, -50%) scale(1.28); }
-          62% { transform: translate(-50%, -50%) scale(2.06); }
-          84% { transform: translate(-50%, -50%) scale(1.92); }
+          70% { transform: translate(-50%, -50%) scale(2.06); }
           100% { transform: translate(-50%, -50%) scale(1.98); }
         }
         @keyframes t2PopSpringBottom {
           0% { transform: translate(-50%, -50%) scale(1.38); }
-          62% { transform: translate(-50%, -50%) scale(2.28); }
-          84% { transform: translate(-50%, -50%) scale(2.14); }
+          70% { transform: translate(-50%, -50%) scale(2.28); }
           100% { transform: translate(-50%, -50%) scale(2.20); }
         }
 
