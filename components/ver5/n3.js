@@ -284,8 +284,8 @@ const N3 = () => {
         .container.arrived .bg-grad { opacity: 1; animation: bgSurge 900ms cubic-bezier(0.2, 0.9, 0.1, 1) both; }
         @keyframes bgSurge { 0% { transform: translateY(25%) scaleY(0.65); opacity: 0; } 60% { opacity: 0.85; } 100% { transform: translateY(0) scaleY(1.05); opacity: 1; } }
 
-        /* mini blobs (above main blobs, below UI) */
-        .mini-layer { position:absolute; inset:0; z-index:7; pointer-events:none; }
+        /* mini blobs (behind main blobs, below their glow) */
+        .mini-layer { position:absolute; inset:0; z-index:0; pointer-events:none; }
         .mini-blob {
           position:absolute;
           border-radius:50%;
@@ -296,7 +296,7 @@ const N3 = () => {
           mix-blend-mode: screen;
           will-change: transform, opacity;
           backface-visibility: hidden;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5), 0 0 32px rgba(194,246,255,0.35);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 0 24px rgba(194,246,255,0.25);
         }
         .mini-blob::after {
           content:"";
@@ -309,36 +309,36 @@ const N3 = () => {
               rgba(235, 201, 255, var(--tint-alpha)) calc(var(--end) - (var(--feather) * 0.2)),
               rgba(255,255,255,0.85) calc(var(--end) + (var(--feather) * 0.4)));
           mix-blend-mode: screen;
-          opacity:0.65;
+          opacity:0.55;
         }
         .mini-blob.m1 {
-          left: 10%;
-          bottom: 152px;
+          left: 4%;
+          bottom: 198px;
           width: clamp(105px, 21svh, 210px);
           height: clamp(105px, 21svh, 210px);
         }
         .mini-blob.m2 {
-          right: 10%;
-          bottom: 24px;
+          right: 4%;
+          bottom: 12px;
           width: clamp(148px, 28svh, 288px);
           height: clamp(148px, 28svh, 288px);
         }
         .container.moved .mini-blob { animation: none; opacity: 0; }
         /* spawn during growth, then float slowly */
-        .container.arrived .mini-blob.m1 { animation: miniSpawn 820ms ease-out 200ms 1 both, miniFloatL 13s ease-in-out 1200ms infinite; }
-        .container.arrived .mini-blob.m2 { animation: miniSpawn 820ms ease-out 280ms 1 both, miniFloatR 14s ease-in-out 1300ms infinite; }
+        .container.arrived .mini-blob.m1 { animation: miniSpawn 820ms ease-out 200ms 1 both, miniFloatL 15s ease-in-out 1400ms infinite; opacity: 0.42; }
+        .container.arrived .mini-blob.m2 { animation: miniSpawn 820ms ease-out 280ms 1 both, miniFloatR 16s ease-in-out 1500ms infinite; opacity: 0.48; }
         @keyframes miniSpawn {
           0%   { opacity:0;   transform: translateY(24px) scale(0.78); }
           100% { opacity:0.55; transform: translateY(0)    scale(1.00); }
         }
         @keyframes miniFloatL {
-          0%   { transform: translateY(0) translateX(0) scale(0.98); }
-          50%  { transform: translateY(-10px) translateX(14px) scale(1.00); }
-          100% { transform: translateY(0) translateX(0) scale(0.98); }
+          0%   { transform: translateY(0) translateX(0) scale(0.97); }
+          50%  { transform: translateY(-18px) translateX(28px) scale(1.01); }
+          100% { transform: translateY(0) translateX(0) scale(0.97); }
         }
         @keyframes miniFloatR {
           0%   { transform: translateY(0) translateX(0) scale(1.00); }
-          50%  { transform: translateY(-12px) translateX(-16px) scale(1.03); }
+          50%  { transform: translateY(-22px) translateX(-32px) scale(1.04); }
           100% { transform: translateY(0) translateX(0) scale(1.00); }
         }
 
