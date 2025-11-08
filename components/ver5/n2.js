@@ -72,6 +72,7 @@ const N4 = () => {
           }}
         >
           <div className="ring-boost" />
+          <div className="pulse-rim" aria-hidden />
         </div>
         <div
           className="blob bottom"
@@ -90,6 +91,7 @@ const N4 = () => {
           }}
         >
           <div className="ring-boost" />
+          <div className="pulse-rim" aria-hidden />
         </div>
       </div>
 
@@ -265,6 +267,59 @@ const N4 = () => {
                   mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
         }
 
+        .pulse-rim {
+          position: absolute;
+          inset: -4%;
+          border-radius: 50%;
+          pointer-events: none;
+          opacity: 0;
+          transform: translateZ(0) scale(0.92);
+          background:
+            radial-gradient(circle at var(--center-x) var(--center-y),
+              rgba(255,255,255,0.48) 0%,
+              rgba(255,255,255,0.26) 12%,
+              rgba(255,255,255,0.12) 20%,
+              rgba(255,255,255,0.0) 30%),
+            repeating-radial-gradient(circle at var(--center-x) var(--center-y),
+              rgba(255,255,255,0.32) 0% 4%,
+              rgba(255,255,255,0.0) 4% 10%);
+          mix-blend-mode: screen;
+          filter: blur(2px);
+          box-shadow:
+            0 0 10px rgba(255,255,255,0.28),
+            inset 0 0 6px rgba(255,255,255,0.22);
+          will-change: opacity, transform, background-position;
+          background-size: 102% 102%, 108% 108%;
+        }
+        .pulse-rim::before {
+          content: "";
+          position: absolute;
+          inset: -8%;
+          border-radius: inherit;
+          background: conic-gradient(from 0deg,
+            rgba(255,255,255,0.0) 0deg,
+            rgba(255,255,255,0.16) 90deg,
+            rgba(255,255,255,0.34) 150deg,
+            rgba(255,255,255,0.0) 270deg);
+          filter: blur(12px);
+          opacity: 0.28;
+          animation: rimSheen 6200ms linear infinite;
+          mix-blend-mode: screen;
+        }
+        .pulse-rim::after {
+          content: "";
+          position: absolute;
+          inset: 6%;
+          border-radius: inherit;
+          border: 1px solid rgba(255,255,255,0.46);
+          opacity: 0.65;
+          filter: blur(1px);
+        }
+        .container.moved .pulse-rim { animation: none; opacity: 0; }
+        .container.arrived .pulse-rim {
+          animation: rimPulse 3200ms ease-out 2400ms infinite;
+        }
+
         
 
         .blob::before,
@@ -374,6 +429,43 @@ const N4 = () => {
         @keyframes n4GrowSmoothBottom {
           0%   { transform: translate(-50%, -50%) scale(1.30) rotate(30deg); }
           100% { transform: translate(-50%, -50%) scale(2.20) rotate(30deg); }
+        }
+        @keyframes rimPulse {
+          0% {
+            opacity: 0.32;
+            transform: translateZ(0) scale(0.92);
+            filter: blur(2px);
+            background-position: 50% 50%, 50% 50%;
+          }
+          32% {
+            opacity: 0.52;
+            transform: translateZ(0) scale(1.08);
+            filter: blur(3px);
+            background-position: 48% 52%, 52% 48%;
+          }
+          64% {
+            opacity: 0.28;
+            transform: translateZ(0) scale(1.22);
+            filter: blur(4px);
+            background-position: 51% 47%, 49% 53%;
+          }
+          84% {
+            opacity: 0.12;
+            transform: translateZ(0) scale(1.34);
+            filter: blur(5px);
+            background-position: 50% 50%, 50% 50%;
+          }
+          100% {
+            opacity: 0;
+            transform: translateZ(0) scale(1.42);
+            filter: blur(6px);
+            background-position: 50% 50%, 50% 50%;
+          }
+        }
+        @keyframes rimSheen {
+          to {
+            transform: rotate(360deg);
+          }
         }
         /* keep the same gradient before/after arrival to avoid sudden snap */
       `}</style>

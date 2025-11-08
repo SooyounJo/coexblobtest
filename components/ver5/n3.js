@@ -26,6 +26,8 @@ const N3 = () => {
   const color2 = '#DCD6FF';
   const tintAlpha = 0.85;
   const boost = 1.9;
+  const miniColorA = '#C6FFF0';
+  const miniColorB = '#D8D3FF';
 
   const gradient = `radial-gradient(circle at var(--center-x) var(--center-y),
     ${color0} 0%,
@@ -35,6 +37,10 @@ const N3 = () => {
     ${color2} 70%,
     #EEF4FF 88%,
     #FFFFFF 100%)`;
+  const miniGradient = `radial-gradient(circle at var(--center-x) var(--center-y),
+    ${miniColorA} 0%,
+    ${miniColorA} 52%,
+    ${miniColorB} 100%)`;
 
   return (
     <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''}`}>
@@ -69,6 +75,7 @@ const N3 = () => {
             '--rim-tilt': `${rimTilt}deg`,
             '--bg': gradient,
             '--tint-alpha': tintAlpha,
+            '--mini-bg': miniGradient,
           }}
         />
         <div
@@ -82,6 +89,7 @@ const N3 = () => {
             '--rim-tilt': `${rimTilt}deg`,
             '--bg': gradient,
             '--tint-alpha': tintAlpha,
+            '--mini-bg': miniGradient,
           }}
         />
       </div>
@@ -254,13 +262,13 @@ const N3 = () => {
         .container.moved { filter: none; }
         .container.arrived { filter: none; }
         /* rise: cancel elongation (uniform scale only) */
-        .container.moved .blob.top { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); }
+        .container.moved .blob.top { opacity: 0; top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); transition: top 1.6s cubic-bezier(0.4, 0, 1, 1), transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease-out; }
         .container.moved .blob.bottom { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3) rotate(30deg); }
         /* motion gating: no pulse while moving; after arrival faster & wider */
         .container.moved .blob { animation: none; }
         .container.arrived .blob { animation: ringPulseFastWide 2.2s ease-in-out infinite; }
         /* arrival: smooth continue-growth (no pause, no overshoot) */
-        .container.arrived .blob.top { animation: ringPulseFastWide 2.2s ease-in-out 0ms infinite, n4GrowSmoothTop 900ms cubic-bezier(0.2, 0.9, 0.1, 1) 0ms 1 both; }
+        .container.arrived .blob.top { opacity: 1; animation: ringPulseFastWide 2.2s ease-in-out 0ms infinite, n4GrowSmoothTop 900ms cubic-bezier(0.2, 0.9, 0.1, 1) 0ms 1 both; transition: opacity 450ms ease-out; }
         .container.arrived .blob.bottom { animation: ringPulseFastWide 2.2s ease-in-out 0ms infinite, n4GrowSmoothBottom 900ms cubic-bezier(0.2, 0.9, 0.1, 1) 0ms 1 both; }
         .container.moved .ring-boost { filter: none; }
         .container.arrived .ring-boost { filter: none; }
@@ -292,24 +300,23 @@ const N3 = () => {
           opacity:0;
           transform: translateY(24px) scale(0.78);
           filter: none;
-          background: var(--bg);
+          background: var(--mini-bg);
           mix-blend-mode: screen;
           will-change: transform, opacity;
           backface-visibility: hidden;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35), 0 0 24px rgba(194,246,255,0.25);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.38), 0 0 18px rgba(186,230,255,0.22);
         }
         .mini-blob::after {
           content:"";
           position:absolute;
           inset:0;
           border-radius:inherit;
-          background:
-            radial-gradient(circle at var(--center-x) var(--center-y),
-              rgba(235, 201, 255, 0) 0 calc(var(--start) - (var(--feather) * 0.4)),
-              rgba(235, 201, 255, var(--tint-alpha)) calc(var(--end) - (var(--feather) * 0.2)),
-              rgba(255,255,255,0.85) calc(var(--end) + (var(--feather) * 0.4)));
+          background: radial-gradient(circle at calc(var(--center-x) * 1%) calc(var(--center-y) * 1%),
+            rgba(255,255,255,0.55) 0%,
+            rgba(255,255,255,0.16) 45%,
+            rgba(255,255,255,0) 85%);
           mix-blend-mode: screen;
-          opacity:0.55;
+          opacity:0.5;
         }
         .mini-blob.m1 {
           left: 4%;
@@ -332,13 +339,15 @@ const N3 = () => {
           100% { opacity:0.55; transform: translateY(0)    scale(1.00); }
         }
         @keyframes miniFloatL {
-          0%   { transform: translateY(0) translateX(0) scale(0.97); }
-          50%  { transform: translateY(-18px) translateX(28px) scale(1.01); }
-          100% { transform: translateY(0) translateX(0) scale(0.97); }
+          0%   { transform: translateY(0) translateX(0) scale(0.96); }
+          40%  { transform: translateY(-32px) translateX(36px) scale(1.03); }
+          70%  { transform: translateY(18px) translateX(-18px) scale(0.99); }
+          100% { transform: translateY(0) translateX(0) scale(0.96); }
         }
         @keyframes miniFloatR {
           0%   { transform: translateY(0) translateX(0) scale(1.00); }
-          50%  { transform: translateY(-22px) translateX(-32px) scale(1.04); }
+          35%  { transform: translateY(-38px) translateX(-40px) scale(1.06); }
+          75%  { transform: translateY(26px) translateX(22px) scale(1.01); }
           100% { transform: translateY(0) translateX(0) scale(1.00); }
         }
 
