@@ -1,72 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-const In1 = () => {
-  const [moved, setMoved] = useState(false);
-  const [arrived, setArrived] = useState(false);
-  const [cleaned, setCleaned] = useState(false);
-  // fixed orbit mode (remove dev toggles/labels)
-
-  useEffect(() => {
-    if (moved) {
-      const t = setTimeout(() => setArrived(true), 2000);
-      return () => clearTimeout(t);
-    }
-    setArrived(false);
-  }, [moved]);
-
-  useEffect(() => {
-    if (arrived) {
-      const t = setTimeout(() => setCleaned(true), 900);
-      return () => clearTimeout(t);
-    }
-    setCleaned(false);
-  }, [arrived]);
-
-  // removed dev key toggles
-
-  // prevent page scroll while this view is mounted
-  useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverscrollY = document.documentElement.style.overscrollBehaviorY;
-    const prevBodyOverscrollY = document.body.style.overscrollBehaviorY;
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overscrollBehaviorY = 'none';
-    document.body.style.overscrollBehaviorY = 'none';
-    return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
-      document.documentElement.style.overscrollBehaviorY = prevHtmlOverscrollY;
-      document.body.style.overscrollBehaviorY = prevBodyOverscrollY;
-    };
-  }, []);
-
+const BlobMotion = () => {
   return (
-    <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''} ${cleaned ? 'cleaned' : ''} wave-orbit`}>
-      {/* 텍스트 오버레이 (ver2/2 그대로) */}
-      <div className="hero">
-        <div className="eyebrow">Welcome To</div>
-        <h1 className="title">Sori<br/>Coex Guide</h1>
-        <p className="subtitle">오늘 538번째로 대화하는 중이에요</p>
-      </div>
-      <button className="cta" onClick={(e) => { e.stopPropagation(); setMoved(true); }}>
-        시작하기
-      </button>
-
-      {/* 전환 후 상단 중앙 안내 문구 */}
-      <div className="greet">
-        <div className="greet-line1">안녕하세요! 이솔이에요</div>
-        <div className="greet-line2">코엑스 안내를 도와드릴게요</div>
-      </div>
-
-      {/* 비활성화된 입력 박스 (ver2/2 그대로) */}
-      <div className="composer" aria-disabled onClick={(e)=>e.stopPropagation()}>
-        <span className="plus">+</span>
-        <input className="input" type="text" placeholder="메시지 보내기..." disabled />
-        <span className="mic">🎤</span>
-      </div>
-
+    <>
       {/* 백그라운드 그라디언트 (도착 순간 아래에서 퍼짐) */}
       <div className="ambient" aria-hidden>
         <div className="bg-grad"></div>
@@ -134,29 +70,6 @@ const In1 = () => {
         </div>
       </div>
 
-      {/* n4 overlay: fades in over 2s after arrival */}
-      <div className="n4-stage" aria-hidden>
-        <div
-          className="n4-blob top"
-          style={{
-            '--center-x': `39%`,
-            '--center-y': `33%`,
-            '--start': `50%`,
-            '--end': `99%`,
-            '--blur': `52px`,
-            '--feather': `15%`,
-            '--inner-blur': `20px`,
-            '--rim-tilt': `30deg`,
-            '--bg': `radial-gradient(circle at var(--center-x) var(--center-y), #D9FFB8 0%, #D9FFB8 18%, #B9FFF3 35%, #B9FFF3 52%, #DCD6FF 70%, #EEF4FF 88%, #FFFFFF 100%)`,
-            '--tint-alpha': 0.85,
-            '--boost': 1.9,
-          }}
-        >
-          <div className="n4-ring-boost" />
-        </div>
-        {/* bottom overlay removed per spec */}
-      </div>
-
       <style jsx>{`
         .container {
           width: 100%;
@@ -177,111 +90,6 @@ const In1 = () => {
           --r-bottom: calc(var(--blob-w) * var(--s-bottom) / 2);
           --offset: calc((var(--r-top) + var(--r-bottom) + var(--gap)) / 2);
         }
-
-        /* hero copy */
-        .hero {
-          position: absolute;
-          bottom: 150px;
-          left: 16px;
-          right: 16px;
-          color: #111;
-          z-index: 100;
-          mix-blend-mode: normal;
-          opacity: 1;
-          pointer-events: none;
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          filter: blur(0px);
-          transition: opacity 900ms ease-out, transform 900ms ease-out, filter 900ms ease-out;
-        }
-        .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 8px; }
-        .title { font-size: 44px; line-height: 1.05; font-weight: 900; margin: 0 0 10px 0; }
-        .subtitle { font-size: 15px; line-height: 1.4; font-weight: 600; margin: 0; opacity: 0.9; }
-        .container.moved .hero { opacity: 1; transform: none; filter: none; }
-        .container.arrived .hero { opacity: 0; transform: translateY(18px); filter: none; }
-
-        .cta {
-          position: absolute;
-          left: 50%;
-          bottom: 48px;
-          transform: translateX(-50%);
-          width: var(--control-w);
-          height: var(--control-h);
-          border-radius: 999px;
-          border: 1px solid rgba(0,0,0,0.06);
-          background: rgba(255,255,255,0.92);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
-          color: #111;
-          font-size: clamp(14px, 4.2vw, 17px);
-          font-weight: 800;
-          padding: 0 clamp(12px, 4vw, 18px);
-          cursor: pointer;
-          z-index: 11;
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          box-sizing: border-box;
-          filter: blur(0px);
-          transition: opacity 800ms ease-out, transform 800ms ease-out, filter 800ms ease-out;
-        }
-        .container.moved .cta { opacity: 1; transform: translateX(-50%); filter: blur(6px) saturate(1.02); pointer-events: none; }
-
-        /* greet after arrived */
-        .greet {
-          position: absolute;
-          top: 96px;
-          left: 50%;
-          transform: translate(-50%, 6px);
-          text-align: center;
-          color: #111;
-          z-index: 12;
-          mix-blend-mode: normal;
-          opacity: 0;
-          transition: opacity 1000ms ease-in, transform 1000ms ease-in;
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          text-shadow: 0 1px 6px rgba(255,255,255,0.35);
-        }
-        .greet-line1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
-        .greet-line2 { font-size: 18px; font-weight: 700; opacity: 0.9; }
-        .container.arrived .greet { opacity: 1; transform: translate(-50%, 0); }
-
-        .composer {
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: 48px; /* align with CTA */
-          width: var(--control-w); /* match CTA */
-          height: var(--control-h); /* match CTA */
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          padding: 0 clamp(12px, 4vw, 18px);
-          gap: 10px;
-          background: linear-gradient(90deg, rgba(211, 178, 226, 0.407) 0%, rgba(255, 255, 255, 0.55) 76.44%, rgba(223, 199, 234, 0.3245) 100%);
-          border-radius: 999px; /* match CTA shape */
-          border: 1px solid rgba(0,0,0,0.06); /* match CTA stroke (color differs) */
-          z-index: 110;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 600ms ease-in;
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          box-sizing: border-box;
-        }
-        @media (max-width: 480px) {
-          .composer {
-            position: fixed;
-            left: 50%;
-            transform: translateX(-50%);
-            width: var(--control-w); /* match CTA */
-            bottom: calc(30px + env(safe-area-inset-bottom, 0px));
-            gap: 10px;
-            padding: 0 clamp(12px, 4vw, 18px); /* match CTA */
-            border-radius: 999px; /* match CTA */
-            overflow: hidden; /* ensure gradient corners clip */
-          }
-        }
-        .container.moved .composer { opacity: 0; }
-        .container.arrived .composer { opacity: 0.95; }
-        .composer .plus, .composer .mic { width: 18px; height: 18px; color: #878181; font-weight: 400; flex: none; }
-        .composer .input { flex: 1; border: 0; outline: 0; background: transparent; color: #878181; font-weight: 400; font-size: 15px; line-height: 150%; }
-        .composer .input::placeholder { color: #878181; opacity: 1; }
 
         /* ambient */
         .ambient { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
@@ -311,12 +119,7 @@ const In1 = () => {
           place-items: center;
           pointer-events: none;
           z-index: 5;
-          transition: opacity 2000ms ease;
         }
-        .container.arrived .t2-stage { opacity: 0; transition-delay: 0ms; transition-duration: 150ms; visibility: hidden; }
-        /* after cleanup: remove all visuals except text and composer */
-        .container.cleaned .ambient,
-        .container.cleaned .t2-stage { display: none !important; }
         .t2-blob {
           position: absolute;
           left: 50%;
@@ -338,11 +141,12 @@ const In1 = () => {
 
         .t2-blob.top { top: calc(var(--meet-y) - var(--offset)); transform: translate(-50%, -50%) scale(var(--s-top)); }
         .t2-blob.bottom { top: calc(var(--meet-y) + var(--offset)); transform: translate(-50%, -50%) scale(var(--s-bottom)); }
-        /* keep T2 in place until big blob arrives, then move up */
-        .container.moved .t2-blob.top { top: calc(var(--meet-y) - var(--offset)); transform: translate(-50%, -50%) scale(var(--s-top)); }
-        .container.moved .t2-blob.bottom { top: calc(var(--meet-y) + var(--offset)); transform: translate(-50%, -50%) scale(var(--s-bottom)); }
-        .container.arrived .t2-blob.top { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); animation: none; }
-        .container.arrived .t2-blob.bottom { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3); animation: none; }
+
+        .container.moved .t2-blob.top { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); }
+        .container.moved .t2-blob.bottom { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3); }
+
+        .container.arrived .t2-blob.top { animation: t2PopSpringTop 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheTop 6.8s ease-in-out 1900ms infinite; }
+        .container.arrived .t2-blob.bottom { animation: t2PopSpringBottom 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheBottom 6.8s ease-in-out 1900ms infinite; }
 
         /* anim variables */
         @property --t2-blur { syntax: '<length>'; inherits: true; initial-value: 2px; }
@@ -361,12 +165,11 @@ const In1 = () => {
           filter: blur(var(--t2-blur)) hue-rotate(var(--t2-hue)) saturate(var(--t2-sat)) brightness(var(--t2-bri));
           /* static base; bloom layers provide motion */
           animation: none;
-          transition: --t2-blur 1000ms ease, --t2-sat 1000ms ease, --t2-bri 1000ms ease, --t2-hue 1000ms ease, --gX 1000ms ease, --gY 1000ms ease;
         }
         /* noise mode: apply SVG displacement to base gradient to make waves very visible */
         .container.wave-noise .t2-blob::before { filter: url(#t2Displace) blur(var(--t2-blur)) hue-rotate(var(--t2-hue)) saturate(var(--t2-sat)) brightness(var(--t2-bri)); }
         /* landing: keep brightness/saturation stable to avoid flicker */
-        .container:not(.moved) .t2-blob::before { --t2-sat: 1.10; --t2-bri: 1.02; }
+        .container:not(.moved) .t2-blob::before { --t2-sat: 1.28; --t2-bri: 0.98; animation: idleSpin 8s ease-in-out infinite alternate, t2OpacityPulse 4.2s ease-in-out infinite; opacity: 0.8; }
         /* landing blur for top blob (reduced for sharper look) */
         .t2-blob.top::before { --t2-blur: 18px; }
         /* 1) start: bottom blob without blur */
@@ -377,11 +180,11 @@ const In1 = () => {
         /* smooth rise: start blur immediately at current position (slower ramp) */
         .container.moved .t2-blob.top::before { animation: t2BlurRiseTop 1200ms ease-out 0ms 1 forwards; }
         .container.moved .t2-blob.bottom::before { animation: t2BlurRiseBottom 1200ms ease-out 0ms 1 forwards; }
-        /* morph T2 look toward n4 before overlay fade-in */
-        .container.arrived { --gX: 39%; --gY: 33%; }
-        .container.arrived .t2-blob::before { animation: t2MorphToN4 1000ms ease 0s 1 forwards; }
+        .container.arrived .t2-blob::before { animation: t2BlurSettle 220ms ease-out 0s 1 forwards; }
+        /* after growth, snap to crisp */
+        .container.arrived .t2-blob::before { --t2-blur: 0px; filter: none; }
         /* 2) on rise: gradually add a little blur, then clear when grown */
-        .container.moved .t2-blob::before { --t2-blur: 14px; transition: filter 420ms ease-out, transform 420ms ease-out; transform: rotate(0deg); }
+        .container.moved .t2-blob::before { --t2-blur: 10px; transition: filter 420ms ease-out, transform 420ms ease-out; transform: rotate(0deg); animation: none; opacity: 1; }
 
         .t2-ring {
           position: absolute;
@@ -398,137 +201,15 @@ const In1 = () => {
           mix-blend-mode: screen;
           filter: saturate(1.3) blur(34px) drop-shadow(0 28px 44px rgba(186, 136, 255, 0.58));
         }
-        /* after growth, keep ring subtle for crisp overall look */
+        /* after growth, keep ring subtle for crisp overall look (base) */
         .container.arrived .t2-ring { filter: saturate(1.10) blur(12px); }
-
-        /* n4 overlay */
-        .n4-stage {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          z-index: 6;
-          opacity: 0;
-          transition: opacity 2000ms ease;
-        }
-        /* show overlay as soon as movement starts to avoid white gap */
-        .container.moved .n4-stage { opacity: 1; transition-delay: 0ms; transition-duration: 0ms; }
-        .container.arrived .n4-stage { opacity: 1; transition-delay: 0ms; transition-duration: 150ms; }
-        .n4-blob {
-          position: absolute;
-          left: 50%;
-          width: var(--t2-size);
-          height: var(--t2-size);
-          transform: translate(-50%, -50%);
-          border-radius: 50%;
-          isolation: isolate;
-          --start-anim: clamp(0%, calc(var(--start) + var(--start-wobble)), 90%);
-          --end-anim: clamp(0%, calc(var(--end) + var(--end-wobble)), 100%);
-          --feather-anim: clamp(0%, calc(var(--feather) + var(--feather-wobble)), 25%);
-          animation: none;
-          transition: top 1.6s cubic-bezier(0.4, 0, 1, 1), transform 680ms cubic-bezier(0.2, 0.9, 0.1, 1);
-        }
-        .n4-blob.top { top: calc(var(--meet-y) - var(--offset)); transform: translate(-50%, -50%) scale(var(--s-top)); opacity: 1; }
-        /* start above and small; animate down on moved, then flourish on arrived */
-        .container:not(.moved) .n4-blob.top { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(0.55); opacity: 0.85; }
-        .container.moved .n4-blob.top { top: calc(var(--meet-y) - var(--offset)); transform: translate(-50%, -50%) scale(var(--s-top)); animation: none; opacity: 0.85; }
-        .container.arrived .n4-blob.top { animation: none; opacity: 1; }
-        .n4-blob.bottom { top: calc(var(--meet-y) + var(--offset)); transform: translate(-50%, -50%) scale(var(--s-bottom)); }
-        .n4-blob::before,
-        .n4-blob::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: var(--bg);
-        }
-        .n4-blob::before {
-          filter: blur(var(--inner-blur));
-          -webkit-mask: radial-gradient(
-            circle at var(--center-x) var(--center-y),
-            #000 0 calc(var(--start-anim) - var(--feather-anim)),
-            transparent calc(var(--start-anim) + var(--feather-anim))
-          );
-                  mask: radial-gradient(
-            circle at var(--center-x) var(--center-y),
-            #000 0 calc(var(--start-anim) - var(--feather-anim)),
-            transparent calc(var(--start-anim) + var(--feather-anim))
-          );
-        }
-        .n4-blob::after {
-          background:
-            var(--bg),
-            radial-gradient(circle at var(--center-x) var(--center-y),
-              rgba(235, 201, 255, 0) 0 calc(var(--start-anim) - var(--feather-anim)),
-              rgba(235, 201, 255, var(--tint-alpha)) var(--end-anim));
-          background-blend-mode: normal, screen;
-          filter: blur(calc(var(--blur) + var(--blur-wobble))) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.4));
-          opacity: 1;
-          -webkit-mask: radial-gradient(
-            circle at var(--center-x) var(--center-y),
-            transparent 0 calc(var(--start-anim) - var(--feather-anim)),
-            #000 var(--start-anim) var(--end-anim),
-            transparent calc(var(--end-anim) + var(--feather-anim))
-          );
-                  mask: radial-gradient(
-            circle at var(--center-x) var(--center-y),
-            transparent 0 calc(var(--start-anim) - var(--feather-anim)),
-            #000 var(--start-anim) var(--end-anim),
-            transparent calc(var(--end-anim) + var(--feather-anim))
-          );
-        }
-        @supports (mask-composite: intersect) {
-          .n4-blob::after {
-            mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--start-anim) - var(--feather-anim)), #000 var(--start-anim) var(--end-anim), transparent calc(var(--end-anim) + var(--feather-anim))), linear-gradient(calc(180deg + var(--rim-tilt)), transparent 35%, #000 60%);
-            mask-composite: intersect;
-          }
-        }
-        @supports (-webkit-mask-composite: source-in) {
-          .n4-blob::after {
-            -webkit-mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--start-anim) - var(--feather-anim)), #000 var(--start-anim) var(--end-anim), transparent calc(var(--end-anim) + var(--feather-anim))), linear-gradient(calc(180deg + var(--rim-tilt)), transparent 35%, #000 60%);
-            -webkit-mask-composite: source-in;
-        }
-        }
-        .n4-ring-boost {
-          position: absolute;
-          inset: 0;
-          border-radius: 50%;
-          pointer-events: none;
-          background:
-            var(--bg),
-            radial-gradient(circle at var(--center-x) var(--center-y),
-              rgba(235, 201, 255, 0) 0 calc(var(--end) - (var(--feather) * 0.7)),
-              rgba(235, 201, 255, calc(var(--tint-alpha) * 0.9)) calc(var(--end) + (var(--feather) * 0.3)));
-          background-blend-mode: normal, screen;
-          filter: blur(calc((var(--blur) + var(--blur-wobble)) * var(--boost))) drop-shadow(0 26px 40px rgba(186, 136, 255, 0.35));
-          -webkit-mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
-                  mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--end) - var(--feather)), #000 calc(var(--end) - var(--feather)) calc(var(--end) + (var(--feather) * 1.6)), transparent calc(var(--end) + (var(--feather) * 1.8)));
-        }
-
-        /* n4 pulse variables/animation */
-        @property --start-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-        @property --end-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-        @property --feather-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-        @property --blur-wobble { syntax: '<length>'; inherits: true; initial-value: 0px; }
-        @keyframes ringPulseFastWide {
-          0%, 100% {
-            --start-wobble: calc(0% - var(--start));
-            --end-wobble: 0%;
-            --feather-wobble: 0%;
-            --blur-wobble: calc(0px - var(--blur));
-          }
-          50% {
-            --start-wobble: calc(92% - var(--start));
-            --end-wobble: -5%;
-            --feather-wobble: 14%;
-            --blur-wobble: calc(220px - var(--blur));
-          }
-        }
-        
-
-        /* freeze base blobs in-place on arrival */
-        .container.arrived .t2-blob { transition: none; }
-        .container.arrived .t2-blob.top { top: calc(-24% - 400px); opacity: 1; }
-        .container.arrived .t2-blob.bottom { top: calc(44% - 400px); opacity: 1; }
+        /* flourish: brief stronger flow/ring effects after text appears */
+        .container.arrived .t2-flow { animation: flowX 1.4s linear infinite, flowFlourish 2.6s ease-out 1100ms 1 both; }
+        .container.arrived .t2-bloom { animation: bloomPulseWide 2.4s ease-out 1200ms 2 both; opacity: 0.4; }
+        .container.arrived .t2-wave.w1 { opacity: 0.45; animation: ringTravel 1.6s ease-out 1100ms 1 both; }
+        .container.arrived .t2-wave.w2 { opacity: 0.30; animation: ringTravel 1.8s ease-out 1500ms 1 both; }
+        /* orbit hotspot a tad faster for vivid center motion */
+        .container.wave-orbit.arrived .t2-blob { animation-duration: 2.4s; }
 
         /* noise caustic overlay (SVG turbulence) */
         .t2-caustic {
@@ -614,13 +295,18 @@ const In1 = () => {
         .t2-flow.f1 { animation-duration: 2.0s; opacity: 0.32; }
         /* intensify flow during move/after pop for shader-like effect */
         .container.moved .t2-flow { animation: flowX 1.2s linear infinite; opacity: 0.55; filter: blur(36px) saturate(1.35) brightness(1.06); }
-        .container.arrived .t2-flow { animation: none; opacity: 0; filter: none; }
+        .container.arrived .t2-flow { animation: flowX 1.4s linear infinite; opacity: 0.48; filter: blur(34px) saturate(1.28) brightness(1.05); }
         /* perf override: lighten flow during movement */
         .container.moved .t2-flow { animation: flowX 1.35s linear infinite; opacity: 0.28; filter: blur(22px) saturate(1.08) brightness(1.02); }
 
         @keyframes flowX {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
+        }
+        @keyframes flowFlourish {
+          0% { opacity: 0.48; filter: blur(34px) saturate(1.28) brightness(1.05); }
+          50% { opacity: 0.75; filter: blur(40px) saturate(1.55) brightness(1.10); }
+          100% { opacity: 0.50; filter: blur(32px) saturate(1.35) brightness(1.06); }
         }
 
         /* wave mode 1: orbit hotspot (animate gradient origin) */
@@ -679,10 +365,13 @@ const In1 = () => {
           100% { transform: rotate(360deg); }
         }
         /* idle state: slight right rotation on base gradient */
-        .container:not(.moved) .t2-blob::before { animation: idleSpin 8s ease-in-out infinite alternate; }
         @keyframes idleSpin {
           0% { transform: rotate(1deg); }
           100% { transform: rotate(3deg); }
+        }
+        @keyframes t2OpacityPulse {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 1.0; }
         }
 
         /* wave mode 4: hue wave using CSS vars (doesn't collide with ::before animations) */
@@ -703,25 +392,6 @@ const In1 = () => {
         }
         /* after pop: return to clarity (reduced final blur) */
         @keyframes t2BlurSettle { 0% { --t2-blur: 18px; } 100% { --t2-blur: 8px; } }
-        /* morph toward n4 palette/center before overlay appears */
-        @keyframes t2MorphToN4 {
-          0% {
-            --t2-sat: 1.10;
-            --t2-bri: 1.02;
-            --t2-hue: 0deg;
-            --t2-blur: 8px;
-            --gX: 29%;
-            --gY: 28%;
-          }
-          100% {
-            --t2-sat: 1.18;
-            --t2-bri: 1.02;
-            --t2-hue: 0deg;
-            --t2-blur: 12px;
-            --gX: 39%;
-            --gY: 33%;
-          }
-        }
 
         /* strong core pulse for shader-like feel */
         @keyframes t2CorePulseStrong {
@@ -796,25 +466,28 @@ const In1 = () => {
           84% { transform: translate(-50%, -50%) scale(2.14); }
           100% { transform: translate(-50%, -50%) scale(2.20); }
         }
+        /* subtle breathing after arrival */
+        @keyframes t2BlobBreatheTop {
+          0%, 100% { transform: translate(-50%, -50%) scale(1.98); }
+          50%      { transform: translate(-50%, -50%) scale(2.04); }
+        }
+        @keyframes t2BlobBreatheBottom {
+          0%, 100% { transform: translate(-50%, -50%) scale(2.20); }
+          50%      { transform: translate(-50%, -50%) scale(2.28); }
+        }
 
         @keyframes t2TrailFade { 0% { opacity: 0.16; filter: blur(20px) saturate(1.02); transform: translateY(8px) scale(1.01); } 100% { opacity: 0; filter: blur(30px) saturate(1.0); transform: translateY(20px) scale(1.05); } }
         @keyframes bgSurge { 0% { transform: translateY(25%) scaleY(0.65); opacity: 0; } 60% { opacity: 0.85; } 100% { transform: translateY(0) scaleY(1.05); opacity: 1; } }
 
         /* responsive */
         @media (max-width: 768px) {
-          .title { font-size: 48px; }
-          .subtitle { font-size: 16px; }
           .container { --t2-size: 62svh; --gap: 5px; }
         }
         @media (max-width: 480px) {
-          .title { font-size: 40px; }
-          .subtitle { font-size: 15px; }
           .container { --t2-size: 62svh; --gap: 4px; }
         }
       `}</style>
-      <style jsx global>{`
-        html, body, #__next { height: 100%; overflow: hidden; overscroll-behavior-y: none; }
-      `}</style>
+
       {/* SVG defs for displacement filter (noise-based wave) */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
         <defs>
@@ -829,14 +502,10 @@ const In1 = () => {
           </filter>
         </defs>
       </svg>
-      
-    </div>
+    </>
   );
 };
 
-export default In1;
-
-
-
+export default BlobMotion;
 
 

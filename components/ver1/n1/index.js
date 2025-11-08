@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import UI from './n1/UI';
-import BlobMotion from './n1/BlobMotion';
+import React, { useEffect, useState } from 'react';
+import BlobMotion from './BlobMotion';
+import UI from './UI';
 
-const In1 = () => {
+const N1 = () => {
   const [moved, setMoved] = useState(false);
   const [arrived, setArrived] = useState(false);
-  // fixed orbit mode (remove dev toggles/labels)
 
   useEffect(() => {
     if (moved) {
@@ -14,8 +13,6 @@ const In1 = () => {
     }
     setArrived(false);
   }, [moved]);
-
-  // removed dev key toggles
 
   // prevent page scroll while this view is mounted
   useEffect(() => {
@@ -39,32 +36,6 @@ const In1 = () => {
     <div className={`container ${moved ? 'moved' : ''} ${arrived ? 'arrived' : ''} wave-orbit`}>
       <UI onStart={() => setMoved(true)} />
       <BlobMotion />
-      <style jsx>{`
-        .container {
-          width: 100%;
-          height: 100vh;
-          background: #FFFFFF;
-          position: relative;
-          overflow: hidden;
-          --control-w: clamp(240px, 92vw, 360px);
-          --control-h: clamp(44px, 9.6vw, 56px);
-          --t2-size: 62svh;
-          --meet-y: 38%;
-          --s-top: 1.28;
-          --s-bottom: 1.38;
-          --gap: 6px;
-          --blob-w: var(--t2-size);
-          --r-top: calc(var(--blob-w) * var(--s-top) / 2);
-          --r-bottom: calc(var(--blob-w) * var(--s-bottom) / 2);
-          --offset: calc((var(--r-top) + var(--r-bottom) + var(--gap)) / 2);
-        }
-        @media (max-width: 768px) {
-          .container { --t2-size: 62svh; --gap: 5px; }
-        }
-        @media (max-width: 480px) {
-          .container { --t2-size: 62svh; --gap: 4px; }
-        }
-      `}</style>
       <style jsx global>{`
         html, body, #__next { height: 100%; overflow: hidden; overscroll-behavior-y: none; }
       `}</style>
@@ -72,7 +43,6 @@ const In1 = () => {
   );
 };
 
-export default In1;
-
+export default N1;
 
 
