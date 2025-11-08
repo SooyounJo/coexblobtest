@@ -217,12 +217,12 @@ const N4 = () => {
         .container.moved .blob.bottom { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3) scaleX(0.94) scaleY(1.06) rotate(30deg); }
         /* motion gating: no pulse while moving; after arrival faster & wider */
         .container.moved .blob { animation: none; }
-        .container.arrived .blob { animation: ringPulseFastWide 2.2s ease-in-out infinite; }
+        .container.arrived .blob { animation: ringPulseFastWide 2.2s ease-in-out infinite; --inner-blur: 6px; --feather: 9%; }
         /* arrival pop expansion (bounce) after 1s pause */
         .container.arrived .blob.top { animation: ringPulseFastWide 2.2s ease-in-out 0ms infinite, n4PopSpringTop 900ms cubic-bezier(0.2, 0.8, 0.1, 1) 1000ms 1 both; }
         .container.arrived .blob.bottom { animation: ringPulseFastWide 2.2s ease-in-out 0ms infinite, n4PopSpringBottom 900ms cubic-bezier(0.2, 0.8, 0.1, 1) 1000ms 1 both; }
         .container.moved .ring-boost { filter: blur(calc((var(--blur) + var(--blur-wobble)) * calc(var(--boost) * 0.9))) drop-shadow(0 18px 28px rgba(186,136,255,0.30)); }
-        .container.arrived .ring-boost { filter: blur(8px) drop-shadow(0 12px 18px rgba(186,136,255,0.22)); }
+        .container.arrived .ring-boost { filter: blur(6px) drop-shadow(0 12px 18px rgba(186,136,255,0.22)); }
 
         .ring-boost {
           position: absolute;
@@ -396,7 +396,7 @@ const N4 = () => {
               rgba(235, 201, 255, 0) 0 calc(var(--start-anim) - var(--feather-anim)),
               rgba(235, 201, 255, var(--tint-alpha)) var(--end-anim));
           background-blend-mode: normal, screen;
-          filter: blur(10px) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.4));
+          filter: blur(6px) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.4));
         }
       `}</style>
     </div>

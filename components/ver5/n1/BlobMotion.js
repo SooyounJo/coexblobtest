@@ -73,7 +73,7 @@ const BlobMotion = () => {
       {/* Blob styles (global: depends on parent .container state) */}
       <style jsx global>{`
         /* ambient */
-        .ambient { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+        .ambient { position: absolute; inset: 0; z-index: 4; pointer-events: none; contain: paint; }
         .bg-grad {
           position: absolute;
           inset: 0;
@@ -100,6 +100,9 @@ const BlobMotion = () => {
           place-items: center;
           pointer-events: none;
           z-index: 5;
+          contain: layout paint;
+          backface-visibility: hidden;
+          will-change: contents;
         }
         .t2-blob {
           position: absolute;
@@ -126,8 +129,8 @@ const BlobMotion = () => {
         .container.moved .t2-blob.top { top: calc(-24% - 400px); transform: translate(-50%, -50%) scale(1.2); }
         .container.moved .t2-blob.bottom { top: calc(44% - 400px); transform: translate(-50%, -50%) scale(1.3); }
 
-        .container.arrived .t2-blob.top { animation: t2PopSpringTop 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheTop 6.8s ease-in-out 1900ms infinite, orbitHotspot 3.8s ease-in-out 2200ms infinite; }
-        .container.arrived .t2-blob.bottom { animation: t2PopSpringBottom 900ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheBottom 6.8s ease-in-out 1900ms infinite, orbitHotspot 3.8s ease-in-out 2200ms infinite; }
+        .container.arrived .t2-blob.top { animation: t2PopSpringTop 1200ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheTop 9.2s ease-in-out 1900ms infinite, orbitHotspot 3.8s ease-in-out 2200ms infinite; }
+        .container.arrived .t2-blob.bottom { animation: t2PopSpringBottom 1200ms cubic-bezier(0.2, 0.8, 0.1, 1) both, t2BlobBreatheBottom 9.2s ease-in-out 1900ms infinite, orbitHotspot 3.8s ease-in-out 2200ms infinite; }
 
         /* anim variables */
         @property --t2-blur { syntax: '<length>'; inherits: true; initial-value: 2px; }
@@ -150,7 +153,7 @@ const BlobMotion = () => {
         .container:not(.moved) .t2-blob::before { --t2-sat: 1.35; --t2-bri: 0.98; }
         .t2-blob.top::before { --t2-blur: 18px; }
         .container:not(.moved) .t2-blob.bottom::before { --t2-blur: 0px; filter: none; }
-        .container:not(.moved) .t2-blob.bottom { animation: orbitHotspot 6.8s ease-in-out infinite; }
+        .container:not(.moved) .t2-blob { animation: orbitHotspot 12s ease-in-out infinite; }
         .container:not(.moved) .t2-blob.bottom .t2-core { animation: t2Breathe 3.4s ease-in-out infinite; }
         .container.moved .t2-blob.top::before { animation: t2BlurRiseTop 1200ms ease-out 0ms 1 forwards; }
         .container.moved .t2-blob.bottom::before { animation: t2BlurRiseBottom 1200ms ease-out 0ms 1 forwards; }
@@ -255,6 +258,8 @@ const BlobMotion = () => {
           z-index: 1;
         }
         .t2-flow.f1 { animation-duration: 2.0s; opacity: 0.32; }
+        /* landing: flow slower and lighter */
+        .container:not(.moved) .t2-flow { animation: flowX 4.8s linear infinite; opacity: 0.24; filter: blur(24px) saturate(1.08) brightness(1.02); }
         .container.moved .t2-flow { animation: flowX 1.2s linear infinite; opacity: 0.55; filter: blur(36px) saturate(1.35) brightness(1.06); }
         .container.arrived .t2-flow { animation: flowX 1.4s linear infinite; opacity: 0.48; filter: blur(34px) saturate(1.28) brightness(1.05); }
         .container.moved .t2-flow { animation: flowX 1.35s linear infinite; opacity: 0.28; filter: blur(22px) saturate(1.08) brightness(1.02); }
@@ -297,8 +302,8 @@ const BlobMotion = () => {
           70% { opacity: 0.12; transform: scale(1.50); filter: blur(24px) saturate(1.18); }
           100% { opacity: 0; transform: scale(1.85); filter: blur(28px) saturate(1.10); }
         }
-        .container:not(.moved) .t2-wave.w1 { opacity: 0.20; animation: ringTravel 2.8s ease-out infinite; }
-        .container:not(.moved) .t2-wave.w2 { opacity: 0.14; animation: ringTravel 2.8s ease-out 1.4s infinite; }
+        .container:not(.moved) .t2-wave.w1 { opacity: 0.14; animation: ringTravel 5.6s ease-out infinite; }
+        .container:not(.moved) .t2-wave.w2 { opacity: 0.10; animation: ringTravel 5.6s ease-out 2.8s infinite; }
 
         .t2-swirl {
           position: absolute;
@@ -314,7 +319,7 @@ const BlobMotion = () => {
         }
         .container.wave-swirl .t2-swirl { opacity: 0.35; animation: swirlSpin 6.8s linear infinite; }
         .t2-swirl { opacity: 0; animation: none !important; }
-        .container:not(.moved) .t2-blob::before { animation: idleSpin 8s ease-in-out infinite alternate, t2OpacityPulse 4.2s ease-in-out infinite; opacity: 0.5; }
+        .container:not(.moved) .t2-blob::before { animation: idleSpin 10s ease-in-out infinite alternate, t2OpacityPulse 6s ease-in-out infinite; opacity: 0.5; }
         @keyframes idleSpin {
           0% { transform: rotate(1deg); }
           100% { transform: rotate(3deg); }
