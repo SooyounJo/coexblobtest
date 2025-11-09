@@ -590,7 +590,7 @@ export default function Ver7_D2() {
         시작하기
       </button>
       {popActive && (
-        <div className="glass-overlay" aria-hidden={!popActive}>
+        <div className="glass-overlay glass-overlay--visible" aria-hidden={!popActive}>
           <div className="glass-modal">
             <div className="glass-content">
               <div className="avatar placeholder" />
@@ -708,6 +708,9 @@ export default function Ver7_D2() {
           pointer-events: none;
           z-index: 5;
         }
+        .glass-overlay--visible {
+          pointer-events: auto;
+        }
         .glass-modal {
           width: min(360px, 82vw);
           aspect-ratio: 142.41 / 190.74;
@@ -796,8 +799,8 @@ export default function Ver7_D2() {
         }
         .primary:hover {
           box-shadow:
-            0 16px 28px rgba(30, 76, 78, 0.26),
-            inset 0 1px 0 rgba(255,255,255,0.55);
+            0 24px 42px rgba(30, 76, 78, 0.32),
+            inset 0 1px 0 rgba(255,255,255,0.58);
           transform: translateY(-2px);
         }
         .primary:focus { outline: none; }
