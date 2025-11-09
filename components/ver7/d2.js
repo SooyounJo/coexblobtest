@@ -1,24 +1,20 @@
-import React from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 const Canvas = dynamic(() => import('@react-three/fiber').then((mod) => mod.Canvas), {
   ssr: false,
 });
 
-const AgenticBubble = ({ position }) => {
-  const { camera, viewport } = useThree();
-  viewport.getCurrentViewport(camera, [0, 0, 0]);
-
-  const material = useMemo(() => new THREE.ShaderMaterial({
-    uniforms: {
-      time: { value: 0 },
-      lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
-      ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() }
-    },
-    vertexShader: `
+const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
+  uniforms: {
+    time: { value: 0 },
+    lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
+    ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
+    boost: { value: 0 },
+  },
+  vertexShader: `
       varying vec2 vUv;
       varying vec3 vNormal;
       varying vec3 vWorldPos;
@@ -30,11 +26,12 @@ const AgenticBubble = ({ position }) => {
         gl_Position = projectionMatrix * viewMatrix * worldPos;
       }
     `,
-    fragmentShader: `
+  fragmentShader: `
       precision highp float;
       uniform float time;
       uniform vec3 lightDir;
       uniform vec3 ringDir;
+      uniform float boost;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -49,7 +46,7 @@ const AgenticBubble = ({ position }) => {
       }
       void main(){
         vec3 N=normalize(vNormal); vec3 L=normalize(lightDir); vec2 p=vUv-0.5; float r=length(p);
-        float breathing=breathingMotion(time); r=r*(1.0+breathing*0.3);
+        float breathing=breathingMotion(time * 0.65); r=r*(1.0+breathing*0.12);
         float topness=clamp(dot(N,normalize(ringDir))*0.5+0.5,0.0,1.0);
         vec3 emerald=vec3(0.04, 0.92, 0.50);
         vec3 neonMint=vec3(0.30, 0.98, 0.75);
@@ -66,9 +63,15 @@ const AgenticBubble = ({ position }) => {
         float bottomFactor = 1.0 - smoothstep(-0.45, 0.05, p.y);
         base = mix(base, lavender, bottomFactor * 0.55);
         float loopSec=10.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
-        float ripple1=noise(vUv*3.0+time*0.5)*0.08; float ripple2=noise(vUv*5.0+time*0.3)*0.045; float ripple3=noise(vUv*7.0+time*0.7)*0.03; float totalRipple=ripple1+ripple2+ripple3;
-        float elastic1=elasticWave(topness*2.0+time*0.4,3.0,0.12); float elastic2=elasticWave(topness*3.0+time*0.6,2.0,0.07); float totalElastic=elastic1+elastic2;
-        float blurAmount=0.012; float f1=topness*1.8+phase+totalRipple+totalElastic; float f2=topness*1.8+phase+blurAmount+totalRipple*0.85+totalElastic*0.7; float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.7+totalElastic*0.5;
+        float boostFactor = 1.0 + boost * 3.2;
+        float waveSpeed = mix(1.8, 6.2, boost);
+        float waveFreq  = mix(12.0, 40.0, boost);
+        float radial = sin(waveFreq * r - waveSpeed * time);
+        float radialEnv = smoothstep(0.0, 0.85, r);
+        float outwardWave = radial * radialEnv * mix(0.15, 2.4, boost);
+        float ripple1=noise(vUv*3.0+time*0.32)*0.024*boostFactor; float ripple2=noise(vUv*5.0+time*0.24)*0.014*boostFactor; float ripple3=noise(vUv*7.0+time*0.48)*0.01*boostFactor; float totalRipple=ripple1+ripple2+ripple3;
+        float elastic1=elasticWave(topness*2.0+time*0.36,3.2,0.06*boostFactor); float elastic2=elasticWave(topness*3.0+time*0.58,2.2,0.042*boostFactor); float totalElastic=elastic1+elastic2;
+        float blurAmount=0.012; float f1=topness*1.8+phase+totalRipple+totalElastic + outwardWave * 0.45; float f2=topness*1.8+phase+blurAmount+totalRipple*0.8+totalElastic*0.6 + outwardWave * 0.32; float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4 + outwardWave * 0.2;
         float perturb=0.01*n2(vUv*1.5+time*0.05); vec3 w1=bandWeights(f1+perturb); vec3 w2=bandWeights(f2+perturb*0.8); vec3 w3=bandWeights(f3+perturb*0.6);
         float wobble1=0.995+0.0025*n2(vUv*2.2+time*0.06); float wobble2=0.995+0.0025*n2(vUv*2.2+time*0.06+1.7); float wobble3=0.995+0.0025*n2(vUv*2.2+time*0.06+3.1); w1*=wobble1; w2*=wobble2; w3*=wobble3;
         vec3 cY=vec3(0.03,0.90,0.48); vec3 cP=vec3(0.16,0.97,0.68); vec3 cU=vec3(0.82,0.58,0.98);
@@ -76,7 +79,9 @@ const AgenticBubble = ({ position }) => {
         vec3 flowColor1=cY*w1.x + cP*w1.y + cU*w1.z; vec3 flowColor2=cY*w2.x + cP*w2.y + cU*w2.z; vec3 flowColor3=cY*w3.x + cP*w3.y + cU*w3.z; vec3 flowColor=(0.5*flowColor1 + 0.35*flowColor2 + 0.15*flowColor3);
         float mask1=clamp(w1.x+w1.y+w1.z,0.0,1.0); float mask2=clamp(w2.x+w2.y+w2.z,0.0,1.0); float mask3=clamp(w3.x+w3.y+w3.z,0.0,1.0); float flowMaskAvg=clamp((0.5*mask1 + 0.35*mask2 + 0.15*mask3),0.0,1.0);
         vec3 lit=base; lit=mix(lit,flowColor,flowMaskAvg*0.4);
-        vec3 rippleColor=vec3(0.10,0.96,0.42)*totalRipple*0.38; vec3 elasticColor=vec3(0.62,0.62,0.98)*totalElastic*0.24; lit+=rippleColor+elasticColor;
+        vec3 rippleColor=vec3(0.10,0.96,0.42)*totalRipple*mix(0.38,0.62,boost);
+        vec3 elasticColor=vec3(0.62,0.62,0.98)*totalElastic*mix(0.24,0.45,boost);
+        lit+=rippleColor+elasticColor;
         lit = mix(lit, vec3(0.05,0.78,0.42), smoothstep(0.0,0.45,length(p))*0.18);
         lit = mix(lit, deepLavender, bottomFactor * 0.32);
         lit = mix(lit, centerYellow, centerGlow * 0.62);
@@ -86,8 +91,8 @@ const AgenticBubble = ({ position }) => {
         float softHalo=smoothstep(0.42, 0.16, r)*0.12;
         vec3 glow=rimGlow + vec3(0.72,0.58,0.94)*softHalo;
         lit+=glow;
-        lit+=vec3(0.05,0.90,0.50)*(1.0-topness)*0.18;
-        lit+=centerYellow * centerGlow * 0.28;
+        lit+=vec3(0.05,0.90,0.50)*(1.0-topness)*mix(0.08,0.22,boost);
+        lit+=centerYellow * centerGlow * mix(0.18,0.32,boost);
         vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
         float loopPhase = 0.5 + 0.5 * sin(6.28318530718 * time / 7.0);
         float sat = 1.0 + 0.85 * loopPhase;
@@ -96,7 +101,7 @@ const AgenticBubble = ({ position }) => {
         lit *= brightness;
         float contrast = 1.0 + 0.32 * loopPhase;
         lit = (lit - 0.5) * contrast + 0.5;
-        lit=pow(lit,vec3(0.9)); lit*=1.05; lit=mix(lit,vec3(1.0),0.02); lit=clamp(lit,0.0,1.0);
+        lit=pow(lit,vec3(0.92)); lit*=mix(1.0,1.05,boost); lit=mix(lit,vec3(1.0),0.02); lit=clamp(lit,0.0,1.0);
         float edgeBase = smoothstep(0.56, 0.32, r);
         float edgeGlow = softBlur(r - 0.4, 0.15);
         float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.3);
@@ -106,37 +111,223 @@ const AgenticBubble = ({ position }) => {
         gl_FragColor=vec4(lit,alpha);
       }
     `,
-    transparent: true,
-  }), []);
+  transparent: true,
+});
 
-  const meshRef = useRef();
-  const radius = 1.9;
+const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
+  uniforms: {
+    time: { value: 0 },
+    lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
+    ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
+    boost: { value: 0 },
+  },
+  vertexShader: `
+      uniform float time;
+      uniform float boost;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vWorldPos;
+      float hash(vec2 p){
+        p = fract(p*vec2(123.34, 345.45));
+        p += dot(p, p+34.345);
+        return fract(p.x*p.y);
+      }
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        float a = hash(i);
+        float b = hash(i+vec2(1.0,0.0));
+        float c = hash(i+vec2(0.0,1.0));
+        float d = hash(i+vec2(1.0,1.0));
+        vec2 u = f*f*(3.0-2.0*f);
+        return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+      }
+      float waterDropEffect(vec3 pos, float time) {
+        float drop1 = sin(time * 2.0) * 0.3 + 0.5;
+        float drop2 = sin(time * 1.7 + 1.5) * 0.25 + 0.5;
+        float drop3 = sin(time * 2.3 + 3.1) * 0.2 + 0.5;
+        float dist1 = length(pos.xy - vec2(0.2, drop1));
+        float dist2 = length(pos.xy - vec2(-0.3, drop2));
+        float dist3 = length(pos.xy - vec2(0.4, drop3));
+        float ripple1 = sin(dist1 * 20.0 - time * 15.0) * exp(-dist1 * 8.0) * 0.02;
+        float ripple2 = sin(dist2 * 18.0 - time * 12.0) * exp(-dist2 * 6.0) * 0.015;
+        float ripple3 = sin(dist3 * 22.0 - time * 18.0) * exp(-dist3 * 7.0) * 0.018;
+        float shake1 = sin(time * 8.0) * exp(-dist1 * 5.0) * 0.01;
+        float shake2 = sin(time * 6.0 + 1.0) * exp(-dist2 * 4.0) * 0.008;
+        float shake3 = sin(time * 10.0 + 2.0) * exp(-dist3 * 6.0) * 0.012;
+        float intensity = 1.0 + boost * 1.35;
+        return (ripple1 + ripple2 + ripple3 + shake1 + shake2 + shake3) * intensity;
+      }
+      float waterSurfaceDeform(vec3 pos, float time) {
+        float wave1 = sin(pos.x * 3.0 + time * 2.0) * cos(pos.y * 2.5 + time * 1.5) * 0.015;
+        float wave2 = sin(pos.x * 5.0 + time * 3.0) * cos(pos.y * 4.0 + time * 2.5) * 0.008;
+        float wave3 = sin(pos.x * 7.0 + time * 4.0) * cos(pos.y * 6.0 + time * 3.5) * 0.005;
+        float noise1 = noise(pos.xy * 2.0 + time * 0.5) * 0.01;
+        float noise2 = noise(pos.yz * 1.5 + time * 0.7) * 0.008;
+        float noise3 = noise(pos.zx * 2.5 + time * 0.9) * 0.006;
+        float surfaceIntensity = 1.0 + boost * 1.1;
+        return (wave1 + wave2 + wave3 + noise1 + noise2 + noise3) * surfaceIntensity;
+      }
+      void main() {
+        vUv = uv;
+        vec3 pos = position;
+        float dropEffect = waterDropEffect(pos, time);
+        pos += normal * dropEffect;
+        float surfaceDeform = waterSurfaceDeform(pos, time);
+        pos += normal * surfaceDeform;
+        vNormal = normalize(normalMatrix * normal);
+        vec4 worldPos = modelMatrix * vec4(pos, 1.0);
+        vWorldPos = worldPos.xyz;
+        gl_Position = projectionMatrix * viewMatrix * worldPos;
+      }
+    `,
+  fragmentShader: `
+      precision highp float;
+      uniform float time;
+      uniform float boost;
+      uniform vec3 lightDir;
+      uniform vec3 ringDir;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
+      float n2(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0)); vec2 u=f*f*(3.0-2.0*f); return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);}      
+      float noise(vec2 p) { return sin(p.x) * cos(p.y) + sin(p.x*2.0)*cos(p.y*2.0)*0.5; }
+      float elasticWave(float x, float frequency, float amplitude){ float wave=sin(x*frequency)*amplitude; float decay=exp(-x*0.05); float bounce=sin(x*frequency*2.0)*amplitude*0.3; return (wave+bounce)*decay; }
+      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=fwidth(f)*1.2; return smoothstep(w+aa,0.0+aa,d);}      
+      vec3 bandWeights(float f){ float width=0.24; float y=bumpMove(0.18,width,f); float p=bumpMove(0.52,width,f); float u=bumpMove(0.86,width,f); return vec3(y,p,u);}      
+      float softBlur(float x, float strength) { return exp(-x * x / strength); }
+      void main(){
+        vec3 N=normalize(vNormal);
+        vec3 L=normalize(lightDir);
+        vec2 p = vUv - 0.5;
+        float r=length(p);
+        float topness=clamp(dot(N,normalize(ringDir))*0.5+0.5,0.0,1.0);
+        vec3 emerald=vec3(0.04, 0.92, 0.50);
+        vec3 neonMint=vec3(0.30, 0.98, 0.75);
+        vec3 vividGreen=vec3(0.00, 0.90, 0.35);
+        vec3 centerYellow=vec3(1.00, 0.95, 0.45);
+        vec3 lavender=vec3(0.90, 0.62, 1.00);
+        vec3 deepLavender=vec3(0.60, 0.45, 0.95);
+        vec3 base=mix(neonMint,emerald,clamp(0.4+0.6*topness,0.0,1.0));
+        base=mix(base,vividGreen,smoothstep(0.1,0.36,topness));
+        base=mix(base,lavender,smoothstep(0.0,0.55,1.0-topness));
+        base=mix(base,deepLavender,smoothstep(-0.36,0.2,p.y)*0.42);
+        float loopSec=12.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
+        float rippleIntensity = 1.0 + boost * 1.25;
+        float drop1=sin(time*2.0)*0.3+0.5; float drop2=sin(time*1.7+1.5)*0.25+0.5; float drop3=sin(time*2.3+3.1)*0.2+0.5;
+        float dist1=length(vUv-vec2(0.2,drop1)); float dist2=length(vUv-vec2(-0.3,drop2)); float dist3=length(vUv-vec2(0.4,drop3));
+        float ripple1=sin(dist1*18.0-time*8.4)*exp(-dist1*7.5)*0.08*rippleIntensity;
+        float ripple2=sin(dist2*16.0-time*7.2)*exp(-dist2*5.8)*0.06*rippleIntensity;
+        float ripple3=sin(dist3*19.0-time*9.6)*exp(-dist3*6.4)*0.075*rippleIntensity;
+        float totalRipple=ripple1+ripple2+ripple3;
+        float elastic1=elasticWave(topness*2.0+time*0.38,3.0,0.12);
+        float elastic2=elasticWave(topness*3.0+time*0.62,2.2,0.07);
+        float totalElastic=(elastic1+elastic2) * (1.0 + boost * 0.85);
+        float blurAmount=0.012;
+        float f1=topness*1.8+phase+totalRipple+totalElastic;
+        float f2=topness*1.8+phase+blurAmount+totalRipple*0.82+totalElastic*0.64;
+        float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4;
+        float perturb=0.02*n2(vUv*1.5+time*0.05);
+        vec3 w1=bandWeights(f1+perturb);
+        vec3 w2=bandWeights(f2+perturb*0.8);
+        vec3 w3=bandWeights(f3+perturb*0.6);
+        float wobble1=0.996+0.0025*n2(vUv*2.2+time*0.05+1.0);
+        float wobble2=0.996+0.0025*n2(vUv*2.2+time*0.05+2.4);
+        float wobble3=0.996+0.0025*n2(vUv*2.2+time*0.05+3.7);
+        w1*=wobble1; w2*=wobble2; w3*=wobble3;
+        vec3 cY=vec3(0.10,0.92,0.58);
+        vec3 cP=vec3(0.22,0.96,0.70);
+        vec3 cU=vec3(0.66,0.50,0.98);
+        w1*=vec3(0.22,1.10,1.05);
+        w2*=vec3(0.22,1.10,1.05);
+        w3*=vec3(0.22,1.10,1.05);
+        vec3 flowColor1=cY*w1.x + cP*w1.y + cU*w1.z;
+        vec3 flowColor2=cY*w2.x + cP*w2.y + cU*w2.z;
+        vec3 flowColor3=cY*w3.x + cP*w3.y + cU*w3.z;
+        vec3 flowColor=(0.5*flowColor1 + 0.35*flowColor2 + 0.15*flowColor3);
+        float mask1=clamp(w1.x+w1.y+w1.z,0.0,1.0);
+        float mask2=clamp(w2.x+w2.y+w2.z,0.0,1.0);
+        float mask3=clamp(w3.x+w3.y+w3.z,0.0,1.0);
+        float flowMaskAvg=clamp((0.5*mask1 + 0.35*mask2 + 0.15*mask3),0.0,1.0);
+        vec3 lit=base;
+        lit=mix(lit,flowColor,flowMaskAvg*mix(0.32,0.58,boost));
+        vec3 rippleColor=vec3(0.10,0.98,0.52)*totalRipple*mix(0.18,0.36,boost);
+        vec3 elasticColor=vec3(0.58,0.60,0.96)*totalElastic*mix(0.14,0.28,boost);
+        lit+=rippleColor+elasticColor;
+        float centerGlow = smoothstep(0.34, 0.08, r);
+        lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
+        vec3 V=vec3(0.0,0.0,1.0);
+        float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
+        vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
+        float softHalo=smoothstep(0.38, 0.14, r)*0.12;
+        vec3 glow=rimGlow + vec3(0.68,0.54,0.96)*softHalo;
+        lit+=glow;
+        lit+=vec3(0.08,0.94,0.60)*(1.0-topness)*mix(0.12,0.22,boost);
+        vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
+        float loopPhase = 0.5 + 0.5 * sin(6.28318530718 * time / 9.5);
+        float sat = 1.0 + 0.6 * loopPhase;
+        lit = mix(gray, lit, sat);
+        float brightness = 1.0 + 0.1 * loopPhase;
+        lit *= brightness;
+        float contrast = 1.0 + 0.2 * loopPhase;
+        lit = (lit - 0.5) * contrast + 0.5;
+        lit=pow(lit,vec3(0.92));
+        lit*=1.04;
+        lit=mix(lit,vec3(1.0),0.015);
+        lit=clamp(lit,0.0,1.0);
+        float edgeBase = smoothstep(0.54, 0.30, r);
+        float edgeGlow = softBlur(r - 0.36, 0.18);
+        float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
+        float alpha = 0.8 * edgeFeather + fres * 0.16;
+        alpha = clamp(alpha, 0.0, 0.95);
+        gl_FragColor=vec4(lit,alpha);
+      }
+    `,
+  transparent: true,
+});
+
+const AgenticBubble = ({ position, boosted, variant = 'default' }) => {
+  const material = useMemo(() => {
+    return variant === 'water' ? createWaterShaderMaterial() : createDefaultShaderMaterial();
+  }, [variant]);
+
+  const boostValueRef = useRef(0);
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
+    const target = boosted ? 1 : 0;
+    const lerpFactor = boosted ? 0.14 : 0.04;
+    boostValueRef.current = THREE.MathUtils.lerp(boostValueRef.current, target, lerpFactor);
+    if (material.uniforms.boost != null) {
+      material.uniforms.boost.value = boostValueRef.current;
+    }
   });
 
   return (
-    <mesh ref={meshRef} position={position}>
-      <sphereGeometry args={[radius, 256, 256]} />
+    <mesh position={position}>
+      <sphereGeometry args={[1.9, 256, 256]} />
       <primitive object={material} attach="material" />
     </mesh>
   );
 };
 
-const Scene = () => {
+const Scene = ({ boosted }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
   return (
     <group position={[0, 0.8, 1]} renderOrder={1000}>
-      <AgenticBubble position={[0, spacing + 0.3, 0]} />
-      <AgenticBubble position={[0, -(spacing + 0.3), 0]} />
+      <AgenticBubble boosted={false} position={[0, spacing + 0.3, 0]} variant="default" />
+      <AgenticBubble
+        boosted={boosted}
+        position={[0, -(spacing + 0.3), 0]}
+        variant={boosted ? 'water' : 'default'}
+      />
     </group>
   );
 };
 
-const CanvasBackground = () => {
+const CanvasBackground = ({ boosted }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -145,7 +336,7 @@ const CanvasBackground = () => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene />
+        <Scene boosted={boosted} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -164,15 +355,28 @@ const CanvasBackground = () => {
 };
 
 export default function Ver7_D2() {
+  const [boosted, setBoosted] = useState(false);
+  const boostTimeoutRef = useRef(null);
+
+  const handleBoost = () => {
+    if (boostTimeoutRef.current) {
+      clearTimeout(boostTimeoutRef.current);
+    }
+    setBoosted(true);
+    boostTimeoutRef.current = setTimeout(() => {
+      setBoosted(false);
+    }, 2000);
+  };
+
   return (
     <div className="container">
-      <CanvasBackground />
+      <CanvasBackground boosted={boosted} />
       <div className="hero">
         <div className="eyebrow">Welcome To</div>
         <h1 className="title">Sori<br />Coex Guide</h1>
-        <p className="subtitle">천천히 숨쉬는 블롭</p>
+        <p className="subtitle">오늘 538번째로 대화하는 중이에요</p>
       </div>
-      <button className="cta" onClick={(e) => e.preventDefault()}>
+      <button className="cta" onClick={handleBoost}>
         시작하기
       </button>
       <style jsx>{`
@@ -189,7 +393,7 @@ export default function Ver7_D2() {
           bottom: clamp(120px, 20vh, 220px);
           left: clamp(18px, 6vw, 64px);
           right: clamp(18px, 6vw, 64px);
-          color: #625d7f;
+          color: #4e4967;
           z-index: 2;
           pointer-events: none;
           text-shadow: 0 18px 48px rgba(15, 40, 36, 0.18);
@@ -226,7 +430,7 @@ export default function Ver7_D2() {
             0 18px 36px rgba(36, 82, 94, 0.22),
             inset 0 1px 0 rgba(255,255,255,0.88);
           backdrop-filter: blur(22px) saturate(1.55);
-          color: #625d7f;
+          color: #4e4967;
           font-size: clamp(14px, 4.2vw, 17px);
           font-weight: 800;
           padding: 0 clamp(12px, 4vw, 18px);
@@ -241,7 +445,7 @@ export default function Ver7_D2() {
             0 24px 46px rgba(36, 82, 94, 0.28),
             inset 0 1px 0 rgba(255,255,255,0.92);
           background: linear-gradient(135deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.52) 48%, rgba(255,255,255,0.26) 100%);
-          color: #554f75;
+          color: #443f60;
         }
       `}</style>
     </div>
