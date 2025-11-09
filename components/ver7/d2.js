@@ -50,7 +50,8 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
       }
       void main(){
         vec3 N=normalize(vNormal); vec3 L=normalize(lightDir); vec2 p=vUv-0.5; float r=length(p);
-        float breathing=breathingMotion(time * 0.65); r=r*(1.0+breathing*0.12);
+        float breathing=breathingMotion(time * 0.32);
+        r=r*(1.0+breathing*0.14);
         float topness=clamp(dot(N,normalize(ringDir))*0.5+0.5,0.0,1.0);
         vec3 emerald=vec3(0.04, 0.92, 0.50);
         vec3 neonMint=vec3(0.30, 0.98, 0.75);
@@ -71,15 +72,23 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
         float bottomFactor = 1.0 - smoothstep(-0.45, 0.05, p.y);
         base = mix(base, lavender, bottomFactor * 0.55);
         float loopSec=10.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
-        float boostFactor = 1.0 + boost * 3.2;
-        float waveSpeed = mix(1.8, 6.2, boost);
-        float waveFreq  = mix(12.0, 40.0, boost);
-        float radial = sin(waveFreq * r - waveSpeed * time);
-        float radialEnv = smoothstep(0.0, 0.85, r);
-        float outwardWave = radial * radialEnv * mix(0.15, 2.4, boost);
-        float ripple1=noise(vUv*3.0+time*0.32)*0.024*boostFactor; float ripple2=noise(vUv*5.0+time*0.24)*0.014*boostFactor; float ripple3=noise(vUv*7.0+time*0.48)*0.01*boostFactor; float totalRipple=ripple1+ripple2+ripple3;
-        float elastic1=elasticWave(topness*2.0+time*0.36,3.2,0.06*boostFactor); float elastic2=elasticWave(topness*3.0+time*0.58,2.2,0.042*boostFactor); float totalElastic=elastic1+elastic2;
-        float blurAmount=0.012; float f1=topness*1.8+phase+totalRipple+totalElastic + outwardWave * 0.45; float f2=topness*1.8+phase+blurAmount+totalRipple*0.8+totalElastic*0.6 + outwardWave * 0.32; float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4 + outwardWave * 0.2;
+        float boostFactor = 1.0 + boost * 2.6;
+        float waveSpeed = mix(1.3, 3.0, boost);
+        float waveFreq  = mix(9.5, 18.0, boost);
+        float pulse = 0.5 + 0.5 * sin(time * mix(0.55, 1.05, boost));
+        pulse = smoothstep(0.25, 0.9, pulse);
+        float wave0 = sin(waveFreq * r - waveSpeed * time);
+        float wave1 = sin((waveFreq * 1.6) * r - (waveSpeed * 1.2) * time);
+        float wave2 = sin((waveFreq * 2.3) * r - (waveSpeed * 1.6) * time + 1.2);
+        float radialEnv = smoothstep(0.0, 0.9, r);
+        float outwardWave = radialEnv * pulse * (
+          mix(0.1, 0.28, boost) * wave0 +
+          mix(0.06, 0.18, boost) * wave1 +
+          mix(0.04, 0.12, boost) * wave2
+        );
+        float ripple1=noise(vUv*3.0+time*0.26)*0.02*boostFactor; float ripple2=noise(vUv*5.0+time*0.2)*0.012*boostFactor; float ripple3=noise(vUv*7.0+time*0.4)*0.008*boostFactor; float totalRipple=ripple1+ripple2+ripple3;
+        float elastic1=elasticWave(topness*2.0+time*0.32,3.0,0.05*boostFactor); float elastic2=elasticWave(topness*3.0+time*0.52,2.1,0.036*boostFactor); float totalElastic=elastic1+elastic2;
+        float blurAmount=0.012; float f1=topness*1.8+phase+totalRipple+totalElastic + outwardWave; float f2=topness*1.8+phase+blurAmount+totalRipple*0.8+totalElastic*0.6 + outwardWave * 0.72; float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4 + outwardWave * 0.45;
         float perturb=0.01*n2(vUv*1.5+time*0.05); vec3 w1=bandWeights(f1+perturb); vec3 w2=bandWeights(f2+perturb*0.8); vec3 w3=bandWeights(f3+perturb*0.6);
         float wobble1=0.995+0.0025*n2(vUv*2.2+time*0.06); float wobble2=0.995+0.0025*n2(vUv*2.2+time*0.06+1.7); float wobble3=0.995+0.0025*n2(vUv*2.2+time*0.06+3.1); w1*=wobble1; w2*=wobble2; w3*=wobble3;
         vec3 cY=vec3(0.03,0.90,0.48); vec3 cP=vec3(0.16,0.97,0.68); vec3 cU=vec3(0.82,0.58,0.98);
@@ -363,7 +372,9 @@ const AgenticBubble = ({
 
     if (meshRef.current) {
       const time = state.clock.getElapsedTime();
-      const breatheFactor = breathe ? 1 + Math.sin(time * 0.45) * 0.025 : 1;
+      const smoothFreq = breathe ? 0.28 : 0.18;
+      const smoothAmp = breathe ? 0.04 : 0.006;
+      const breatheFactor = 1 + Math.sin(time * smoothFreq) * smoothAmp;
       meshRef.current.scale.setScalar(scaleRef.current * breatheFactor);
       if (positionLerp > 0) {
         meshRef.current.position.lerp(targetPositionRef.current, positionLerp);
@@ -423,7 +434,7 @@ const Scene = ({ boosted, phase, popActive }) => {
         positionLerp={bottomPositionLerp}
         opacityLerp={0.1}
         scaleLerp={bottomScaleLerp}
-        paletteTarget={popActive ? 1 : 0}
+        paletteTarget={popActive ? 0.7 : 0.2}
         paletteLerp={0.16}
         breathe={popActive}
       />
@@ -440,7 +451,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted} phase={phase} popActive={popActive} />
+        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -465,6 +476,8 @@ export default function Ver7_D2() {
   const boostTimeoutRef = useRef(null);
   const settleTimeoutRef = useRef(null);
   const popTimeoutRef = useRef(null);
+  const pulseTimeoutRef = useRef(null);
+  const calmTimeoutRef = useRef(null);
 
   const handleBoost = () => {
     if (phase !== 'idle') return;
@@ -476,6 +489,12 @@ export default function Ver7_D2() {
     }
     if (popTimeoutRef.current) {
       clearTimeout(popTimeoutRef.current);
+    }
+    if (pulseTimeoutRef.current) {
+      clearTimeout(pulseTimeoutRef.current);
+    }
+    if (calmTimeoutRef.current) {
+      clearTimeout(calmTimeoutRef.current);
     }
     setPopActive(false);
     setPhase('transitioning');
@@ -496,7 +515,7 @@ export default function Ver7_D2() {
     if (phase === 'completed') {
       popTimeoutRef.current = setTimeout(() => {
         setPopActive(true);
-      }, 500);
+      }, 1500);
     } else {
       setPopActive(false);
     }
@@ -506,6 +525,33 @@ export default function Ver7_D2() {
       }
     };
   }, [phase]);
+
+  useEffect(() => {
+    if (pulseTimeoutRef.current) {
+      clearTimeout(pulseTimeoutRef.current);
+    }
+    if (calmTimeoutRef.current) {
+      clearTimeout(calmTimeoutRef.current);
+    }
+    if (popActive) {
+      pulseTimeoutRef.current = setTimeout(() => {
+        setBoosted(true);
+        calmTimeoutRef.current = setTimeout(() => {
+          setBoosted(false);
+        }, 2800);
+      }, 1000);
+    } else {
+      setBoosted(false);
+    }
+    return () => {
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+      }
+      if (calmTimeoutRef.current) {
+        clearTimeout(calmTimeoutRef.current);
+      }
+    };
+  }, [popActive]);
 
   useEffect(() => {
     return () => {
@@ -518,12 +564,18 @@ export default function Ver7_D2() {
       if (popTimeoutRef.current) {
         clearTimeout(popTimeoutRef.current);
       }
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+      }
+      if (calmTimeoutRef.current) {
+        clearTimeout(calmTimeoutRef.current);
+      }
     };
   }, []);
 
   return (
     <div className={`container ${phase !== 'idle' ? 'container--bright' : ''}`}>
-      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
+      <CanvasBackground boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
       <div className={`hero ${phase !== 'idle' ? 'hero--exit' : ''}`} aria-hidden={phase !== 'idle'}>
         <div className="eyebrow">Welcome To</div>
         <h1 className="title">Sori<br />Coex Guide</h1>
@@ -537,19 +589,21 @@ export default function Ver7_D2() {
       >
         시작하기
       </button>
-      <div className={`glass-layer ${popActive ? 'glass-layer--visible' : ''}`} aria-hidden={!popActive}>
-        <div className="glass-modal">
-          <div className="glass-content">
-            <div className="avatar placeholder" />
-            <h3>캐릭터 라이선싱 페어</h3>
-            <p>
-              다양한 캐릭터와 체험 부스를 온 가족과 함께
-              <br />즐겨보세요.
-            </p>
-            <button className="primary">코엑스 홈페이지 바로가기</button>
+      {popActive && (
+        <div className="glass-overlay" aria-hidden={!popActive}>
+          <div className="glass-modal">
+            <div className="glass-content">
+              <div className="avatar placeholder" />
+              <h3>캐릭터 라이선싱 페어</h3>
+              <p>
+                다양한 캐릭터와 체험 부스를 온 가족과 함께
+                <br />즐겨보세요.
+              </p>
+              <button className="primary">코엑스 홈페이지 바로가기</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <style jsx>{`
         .container {
           position: relative;
@@ -644,76 +698,65 @@ export default function Ver7_D2() {
         .cta--exit:hover {
           transform: translateX(-50%) translateY(32px);
         }
-        .glass-layer {
+        .glass-overlay {
           position: absolute;
           inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: clamp(16px, 6vw, 48px);
           pointer-events: none;
-          opacity: 0;
-          transform: translateY(24px) scale(0.94);
-          transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.32, 0, 0.18, 1);
-          z-index: 4;
-          padding: 0 clamp(16px, 6vw, 48px);
-        }
-        .glass-layer--visible {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-          pointer-events: auto;
+          z-index: 5;
         }
         .glass-modal {
-          width: min(320px, 72vw);
-          aspect-ratio: 142.41 / 216.74;
+          width: min(360px, 82vw);
+          aspect-ratio: 142.41 / 190.74;
           display: grid;
           place-items: center;
-          border-radius: 26px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.42);
-          box-shadow:
-            0 28px 48px rgba(94, 46, 96, 0.26),
-            inset 0 1px 0 rgba(255,255,255,0.88),
-            inset 0 -12px 32px rgba(255,255,255,0.18);
-          backdrop-filter: blur(46px) saturate(2.25) contrast(1.12);
-          overflow: hidden;
-          position: relative;
-          padding: clamp(18px, 4.8vw, 26px);
-        }
-        .glass-modal::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background: linear-gradient(135deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.52;
-          pointer-events: none;
-        }
-        .glass-modal::after {
-          content: '';
-          position: absolute;
-          inset: -35%;
-          background:
-            radial-gradient(circle at 20% 18%, rgba(255,255,255,0.32), transparent 60%),
-            radial-gradient(circle at 82% 72%, rgba(186,232,255,0.22), transparent 68%),
-            rgba(255,255,255,0.02);
-          opacity: 0.2;
-          filter: blur(72px) saturate(1.4);
           pointer-events: none;
         }
         .glass-content {
           display: grid;
-          gap: clamp(12px, 3vw, 20px);
+          gap: clamp(18px, 3.6vw, 26px);
+          padding: clamp(22px, 5.2vw, 30px);
+          border-radius: 28px;
+          background: rgba(255,255,255,0.025);
+          border: 1px solid rgba(255,255,255,0.4);
+          box-shadow:
+            0 28px 48px rgba(22, 42, 58, 0.24),
+            inset 0 1px 0 rgba(255,255,255,0.88),
+            inset 0 -10px 28px rgba(255,255,255,0.12);
+          backdrop-filter: blur(42px) saturate(2.35) contrast(1.08);
           text-align: center;
-          color: #2f2352;
-          width: 100%;
-          height: 100%;
+          color: #0f2420;
           position: relative;
-          z-index: 1;
+          overflow: hidden;
+        }
+        .glass-content::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: linear-gradient(145deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0.0) 100%);
+          mix-blend-mode: screen;
+          opacity: 0.48;
+          pointer-events: none;
+        }
+        .glass-content::after {
+          content: '';
+          position: absolute;
+          inset: -30%;
+          background:
+            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.24), transparent 60%),
+            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.18), transparent 70%),
+            rgba(255,255,255,0.018);
+          opacity: 0.16;
+          filter: blur(60px) saturate(1.4);
+          pointer-events: none;
         }
         .avatar {
           width: 100%;
-          border-radius: 18px;
+          border-radius: 16px;
           overflow: hidden;
           background: rgba(255,255,255,0.24);
           display: grid;
@@ -721,42 +764,40 @@ export default function Ver7_D2() {
         }
         .placeholder {
           aspect-ratio: 1 / 1;
-          border-radius: 18px;
-          border: 1px dashed rgba(255,255,255,0.4);
-          background: rgba(255,255,255,0.08);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.36);
+          border-radius: 16px;
+          border: 1px dashed rgba(255,255,255,0.35);
+          background: rgba(255,255,255,0.06);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.32);
         }
         .glass-content h3 {
           margin: 0;
-          font-size: clamp(16px, 4.4vw, 20px);
+          font-size: clamp(18px, 4.6vw, 22px);
           font-weight: 800;
         }
         .glass-content p {
           margin: 0;
-          font-size: clamp(12px, 3.4vw, 14px);
+          font-size: clamp(13px, 3.4vw, 15px);
           font-weight: 500;
           opacity: 0.82;
-          line-height: 1.52;
+          line-height: 1.6;
         }
         .primary {
           border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.52);
-          background: linear-gradient(135deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0.06) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.64),
-            0 12px 26px rgba(74, 32, 94, 0.26);
-          backdrop-filter: blur(28px) saturate(1.65);
-          color: #413066;
+          border: 1px solid rgba(255,255,255,0.42);
+          background: rgba(255,255,255,0.14);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+          backdrop-filter: blur(28px) saturate(1.6);
+          color: #103330;
           font-weight: 700;
-          font-size: clamp(12px, 3.3vw, 14px);
-          padding: clamp(8px, 2.4vw, 12px) clamp(20px, 5.6vw, 28px);
+          font-size: clamp(12px, 3.2vw, 14px);
+          padding: clamp(9px, 2.6vw, 12px) clamp(24px, 6.2vw, 32px);
           cursor: pointer;
           transition: box-shadow 180ms ease, transform 180ms ease;
         }
         .primary:hover {
           box-shadow:
-            0 18px 32px rgba(74, 32, 94, 0.32),
-            inset 0 1px 0 rgba(255,255,255,0.72);
+            0 16px 28px rgba(30, 76, 78, 0.26),
+            inset 0 1px 0 rgba(255,255,255,0.55);
           transform: translateY(-2px);
         }
         .primary:focus { outline: none; }
