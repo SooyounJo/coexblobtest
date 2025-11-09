@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -13,6 +13,8 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
     lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
     ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
     boost: { value: 0 },
+    globalAlpha: { value: 1 },
+    paletteMix: { value: 0 },
   },
   vertexShader: `
       varying vec2 vUv;
@@ -32,6 +34,8 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
       uniform vec3 lightDir;
       uniform vec3 ringDir;
       uniform float boost;
+      uniform float globalAlpha;
+      uniform float paletteMix;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -58,6 +62,10 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
         base=mix(base,vividGreen,smoothstep(0.12,0.38,topness));
         base=mix(base,lavender,smoothstep(0.0,0.45,1.0-topness));
         base=mix(base,deepLavender,smoothstep(-0.4,0.2,p.y)*0.35);
+        vec3 vibrantGreen=vec3(0.18,0.98,0.62);
+        vec3 richPurple=vec3(0.52,0.34,0.96);
+        vec3 paletteGradient=mix(vibrantGreen, richPurple, smoothstep(-0.2, 0.52, p.y));
+        base=mix(base, paletteGradient, paletteMix * 0.6);
         float centerGlow = smoothstep(0.32, 0.05, length(p));
         base = mix(base, centerYellow, centerGlow * 0.48);
         float bottomFactor = 1.0 - smoothstep(-0.45, 0.05, p.y);
@@ -79,20 +87,31 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
         vec3 flowColor1=cY*w1.x + cP*w1.y + cU*w1.z; vec3 flowColor2=cY*w2.x + cP*w2.y + cU*w2.z; vec3 flowColor3=cY*w3.x + cP*w3.y + cU*w3.z; vec3 flowColor=(0.5*flowColor1 + 0.35*flowColor2 + 0.15*flowColor3);
         float mask1=clamp(w1.x+w1.y+w1.z,0.0,1.0); float mask2=clamp(w2.x+w2.y+w2.z,0.0,1.0); float mask3=clamp(w3.x+w3.y+w3.z,0.0,1.0); float flowMaskAvg=clamp((0.5*mask1 + 0.35*mask2 + 0.15*mask3),0.0,1.0);
         vec3 lit=base; lit=mix(lit,flowColor,flowMaskAvg*0.4);
-        vec3 rippleColor=vec3(0.10,0.96,0.42)*totalRipple*mix(0.38,0.62,boost);
-        vec3 elasticColor=vec3(0.62,0.62,0.98)*totalElastic*mix(0.24,0.45,boost);
+        vec3 rippleBase=vec3(0.10,0.96,0.42);
+        vec3 rippleAlt=vec3(0.34,0.62,0.98);
+        vec3 rippleColor=mix(rippleBase, rippleAlt, paletteMix)*totalRipple*mix(0.38,0.62,boost);
+        vec3 elasticBase=vec3(0.62,0.62,0.98);
+        vec3 elasticAlt=vec3(0.42,0.58,0.96);
+        vec3 elasticColor=mix(elasticBase, elasticAlt, paletteMix)*totalElastic*mix(0.24,0.45,boost);
         lit+=rippleColor+elasticColor;
-        lit = mix(lit, vec3(0.05,0.78,0.42), smoothstep(0.0,0.45,length(p))*0.18);
-        lit = mix(lit, deepLavender, bottomFactor * 0.32);
-        lit = mix(lit, centerYellow, centerGlow * 0.62);
+        vec3 innerGreen=vec3(0.08,0.82,0.46);
+        vec3 innerPurple=vec3(0.58,0.42,0.96);
+        vec3 edgePurple=vec3(0.36,0.24,0.78);
+        lit = mix(lit, mix(vec3(0.05,0.78,0.42), innerGreen, paletteMix), smoothstep(0.0,0.45,length(p))*0.18);
+        lit = mix(lit, mix(deepLavender, edgePurple, paletteMix), bottomFactor * 0.32);
+        lit = mix(lit, mix(centerYellow, mix(vibrantGreen, innerPurple, 0.42), paletteMix), centerGlow * 0.62);
         vec3 V=vec3(0.0,0.0,1.0); 
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.2);
-        vec3 rimGlow=vec3(0.10,0.85,0.58)*fres*0.46;
+        vec3 rimBase=vec3(0.10,0.85,0.58);
+        vec3 rimAlt=vec3(0.32,0.46,0.96);
+        vec3 rimGlow=mix(rimBase, rimAlt, paletteMix)*fres*0.46;
         float softHalo=smoothstep(0.42, 0.16, r)*0.12;
-        vec3 glow=rimGlow + vec3(0.72,0.58,0.94)*softHalo;
+        vec3 glow=rimGlow + mix(vec3(0.72,0.58,0.94), vec3(0.46,0.70,0.96), paletteMix)*softHalo;
         lit+=glow;
-        lit+=vec3(0.05,0.90,0.50)*(1.0-topness)*mix(0.08,0.22,boost);
-        lit+=centerYellow * centerGlow * mix(0.18,0.32,boost);
+        vec3 undersideGreen=vec3(0.12,0.94,0.62);
+        lit+=mix(vec3(0.05,0.90,0.50), undersideGreen, paletteMix)*(1.0-topness)*mix(0.08,0.22,boost);
+        vec3 highlightPurple=vec3(0.62,0.44,0.98);
+        lit+=mix(centerYellow, highlightPurple, paletteMix * 0.58) * centerGlow * mix(0.18,0.32,boost);
         vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
         float loopPhase = 0.5 + 0.5 * sin(6.28318530718 * time / 7.0);
         float sat = 1.0 + 0.85 * loopPhase;
@@ -108,7 +127,7 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
         float alpha = 0.88 * edgeFeather + fres * 0.15;
         alpha = alpha * (1.0 - softBlur(r - 0.45, 0.2) * 0.3);
         alpha = clamp(alpha, 0.0, 0.95);
-        gl_FragColor=vec4(lit,alpha);
+        gl_FragColor=vec4(lit,alpha * globalAlpha);
       }
     `,
   transparent: true,
@@ -120,6 +139,8 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
     lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
     ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
     boost: { value: 0 },
+    globalAlpha: { value: 1 },
+    paletteMix: { value: 0 },
   },
   vertexShader: `
       uniform float time;
@@ -187,6 +208,8 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       uniform float boost;
       uniform vec3 lightDir;
       uniform vec3 ringDir;
+      uniform float globalAlpha;
+      uniform float paletteMix;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -256,6 +279,8 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         lit+=rippleColor+elasticColor;
         float centerGlow = smoothstep(0.34, 0.08, r);
         lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
+        vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
+        lit = mix(lit, paletteTint, paletteMix * 0.28);
         vec3 V=vec3(0.0,0.0,1.0);
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
         vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
@@ -280,54 +305,133 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
         float alpha = 0.8 * edgeFeather + fres * 0.16;
         alpha = clamp(alpha, 0.0, 0.95);
-        gl_FragColor=vec4(lit,alpha);
+        gl_FragColor=vec4(lit,alpha * globalAlpha);
       }
     `,
   transparent: true,
 });
 
-const AgenticBubble = ({ position, boosted, variant = 'default' }) => {
+const AgenticBubble = ({
+  position,
+  targetPosition = position,
+  boosted,
+  variant = 'default',
+  opacityTarget = 1,
+  scaleTarget = 1,
+  positionLerp = 0.08,
+  opacityLerp = 0.08,
+  scaleLerp = 0.16,
+  paletteTarget = 0,
+  paletteLerp = 0.12,
+  breathe = false,
+}) => {
   const material = useMemo(() => {
     return variant === 'water' ? createWaterShaderMaterial() : createDefaultShaderMaterial();
   }, [variant]);
 
+  const meshRef = useRef(null);
   const boostValueRef = useRef(0);
+  const opacityRef = useRef(opacityTarget);
+  const scaleRef = useRef(scaleTarget);
+  const paletteRef = useRef(paletteTarget);
+  const targetPositionRef = useRef(new THREE.Vector3(...position));
+
+  useEffect(() => {
+    targetPositionRef.current.set(...targetPosition);
+  }, [targetPosition[0], targetPosition[1], targetPosition[2]]);
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
-    const target = boosted ? 1 : 0;
-    const lerpFactor = boosted ? 0.14 : 0.04;
-    boostValueRef.current = THREE.MathUtils.lerp(boostValueRef.current, target, lerpFactor);
+    const boostTarget = boosted ? 1 : 0;
+    const boostLerp = boosted ? 0.14 : 0.04;
+    boostValueRef.current = THREE.MathUtils.lerp(boostValueRef.current, boostTarget, boostLerp);
     if (material.uniforms.boost != null) {
       material.uniforms.boost.value = boostValueRef.current;
+    }
+
+    opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, opacityTarget, opacityLerp);
+    if (material.uniforms.globalAlpha != null) {
+      material.uniforms.globalAlpha.value = opacityRef.current;
+    }
+
+    scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, scaleTarget, scaleLerp);
+
+    paletteRef.current = THREE.MathUtils.lerp(paletteRef.current, paletteTarget, paletteLerp);
+    if (material.uniforms.paletteMix != null) {
+      material.uniforms.paletteMix.value = paletteRef.current;
+    }
+
+    if (meshRef.current) {
+      const time = state.clock.getElapsedTime();
+      const breatheFactor = breathe ? 1 + Math.sin(time * 0.45) * 0.025 : 1;
+      meshRef.current.scale.setScalar(scaleRef.current * breatheFactor);
+      if (positionLerp > 0) {
+        meshRef.current.position.lerp(targetPositionRef.current, positionLerp);
+      }
     }
   });
 
   return (
-    <mesh position={position}>
+    <mesh ref={meshRef} position={position}>
       <sphereGeometry args={[1.9, 256, 256]} />
       <primitive object={material} attach="material" />
     </mesh>
   );
 };
 
-const Scene = ({ boosted }) => {
+const Scene = ({ boosted, phase, popActive }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
+
+  const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
+  const bottomStartPosition = useMemo(() => [0, -(spacing + 0.3), 0], [spacing]);
+  const bottomTargetPosition = useMemo(
+    () => (phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0]),
+    [phase, spacing],
+  );
+
+  const topOpacityTarget = phase === 'idle' ? 1 : 0;
+  const topScaleTarget = phase === 'transitioning' ? 1.12 : 1;
+  const bottomScaleTarget = popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
+  const bottomPositionLerp = phase === 'completed' ? 0.12 : 0.04;
+  const bottomScaleLerp = popActive ? 0.2 : 0.14;
+  const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
+
   return (
     <group position={[0, 0.8, 1]} renderOrder={1000}>
-      <AgenticBubble boosted={false} position={[0, spacing + 0.3, 0]} variant="default" />
+      <AgenticBubble
+        boosted={false}
+        position={topPosition}
+        targetPosition={topPosition}
+        variant="default"
+        opacityTarget={topOpacityTarget}
+        scaleTarget={topScaleTarget}
+        positionLerp={0.08}
+        opacityLerp={0.06}
+        scaleLerp={0.18}
+        paletteTarget={0}
+        paletteLerp={0.1}
+      />
       <AgenticBubble
         boosted={boosted}
-        position={[0, -(spacing + 0.3), 0]}
-        variant={boosted ? 'water' : 'default'}
+        position={bottomStartPosition}
+        targetPosition={bottomTargetPosition}
+        variant={bottomVariant}
+        opacityTarget={1}
+        scaleTarget={bottomScaleTarget}
+        positionLerp={bottomPositionLerp}
+        opacityLerp={0.1}
+        scaleLerp={bottomScaleLerp}
+        paletteTarget={popActive ? 1 : 0}
+        paletteLerp={0.16}
+        breathe={popActive}
       />
     </group>
   );
 };
 
-const CanvasBackground = ({ boosted }) => {
+const CanvasBackground = ({ boosted, phase, popActive }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -336,7 +440,7 @@ const CanvasBackground = ({ boosted }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted} />
+        <Scene boosted={boosted} phase={phase} popActive={popActive} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -356,37 +460,108 @@ const CanvasBackground = ({ boosted }) => {
 
 export default function Ver7_D2() {
   const [boosted, setBoosted] = useState(false);
+  const [phase, setPhase] = useState('idle');
+  const [popActive, setPopActive] = useState(false);
   const boostTimeoutRef = useRef(null);
+  const settleTimeoutRef = useRef(null);
+  const popTimeoutRef = useRef(null);
 
   const handleBoost = () => {
+    if (phase !== 'idle') return;
     if (boostTimeoutRef.current) {
       clearTimeout(boostTimeoutRef.current);
     }
+    if (settleTimeoutRef.current) {
+      clearTimeout(settleTimeoutRef.current);
+    }
+    if (popTimeoutRef.current) {
+      clearTimeout(popTimeoutRef.current);
+    }
+    setPopActive(false);
+    setPhase('transitioning');
     setBoosted(true);
     boostTimeoutRef.current = setTimeout(() => {
       setBoosted(false);
+      setPhase('settling');
+      settleTimeoutRef.current = setTimeout(() => {
+        setPhase('completed');
+      }, 900);
     }, 2000);
   };
 
+  useEffect(() => {
+    if (popTimeoutRef.current) {
+      clearTimeout(popTimeoutRef.current);
+    }
+    if (phase === 'completed') {
+      popTimeoutRef.current = setTimeout(() => {
+        setPopActive(true);
+      }, 500);
+    } else {
+      setPopActive(false);
+    }
+    return () => {
+      if (popTimeoutRef.current) {
+        clearTimeout(popTimeoutRef.current);
+      }
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    return () => {
+      if (boostTimeoutRef.current) {
+        clearTimeout(boostTimeoutRef.current);
+      }
+      if (settleTimeoutRef.current) {
+        clearTimeout(settleTimeoutRef.current);
+      }
+      if (popTimeoutRef.current) {
+        clearTimeout(popTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="container">
-      <CanvasBackground boosted={boosted} />
-      <div className="hero">
+    <div className={`container ${phase !== 'idle' ? 'container--bright' : ''}`}>
+      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
+      <div className={`hero ${phase !== 'idle' ? 'hero--exit' : ''}`} aria-hidden={phase !== 'idle'}>
         <div className="eyebrow">Welcome To</div>
         <h1 className="title">Sori<br />Coex Guide</h1>
         <p className="subtitle">오늘 538번째로 대화하는 중이에요</p>
       </div>
-      <button className="cta" onClick={handleBoost}>
+      <button
+        className={`cta ${phase !== 'idle' ? 'cta--exit' : ''}`}
+        onClick={handleBoost}
+        disabled={phase !== 'idle'}
+        aria-hidden={phase !== 'idle'}
+      >
         시작하기
       </button>
+      <div className={`glass-layer ${popActive ? 'glass-layer--visible' : ''}`} aria-hidden={!popActive}>
+        <div className="glass-modal">
+          <div className="glass-content">
+            <div className="avatar placeholder" />
+            <h3>캐릭터 라이선싱 페어</h3>
+            <p>
+              다양한 캐릭터와 체험 부스를 온 가족과 함께
+              <br />즐겨보세요.
+            </p>
+            <button className="primary">코엑스 홈페이지 바로가기</button>
+          </div>
+        </div>
+      </div>
       <style jsx>{`
         .container {
           position: relative;
           width: 100%;
           height: 100vh;
           overflow: hidden;
-          background: #FCE6EF;
+          background: radial-gradient(circle at 30% 25%, #fdf0f6 0%, #fce6ef 45%, #f7d7e4 100%);
+          transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+        }
+        .container--bright {
+          background: radial-gradient(circle at 30% 20%, #fff6fb 0%, #fdeef5 38%, #fadce8 100%);
         }
         .hero {
           position: absolute;
@@ -397,6 +572,13 @@ export default function Ver7_D2() {
           z-index: 2;
           pointer-events: none;
           text-shadow: 0 18px 48px rgba(15, 40, 36, 0.18);
+          transition: transform 2s cubic-bezier(0.45, 0, 0.25, 1), opacity 2s ease, filter 2s ease;
+        }
+        .hero--exit {
+          transform: translateY(96px);
+          opacity: 0;
+          filter: blur(6px);
+          pointer-events: none;
         }
         .eyebrow {
           font-size: clamp(14px, 3.4vw, 18px);
@@ -437,7 +619,13 @@ export default function Ver7_D2() {
           cursor: pointer;
           z-index: 3;
           box-sizing: border-box;
-          transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            background 160ms ease,
+            color 160ms ease,
+            opacity 2s ease,
+            filter 2s ease;
         }
         .cta:hover {
           transform: translateX(-50%) translateY(-2px);
@@ -447,6 +635,131 @@ export default function Ver7_D2() {
           background: linear-gradient(135deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.52) 48%, rgba(255,255,255,0.26) 100%);
           color: #443f60;
         }
+        .cta--exit {
+          transform: translateX(-50%) translateY(32px);
+          opacity: 0;
+          filter: blur(5px);
+          pointer-events: none;
+        }
+        .cta--exit:hover {
+          transform: translateX(-50%) translateY(32px);
+        }
+        .glass-layer {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          opacity: 0;
+          transform: translateY(24px) scale(0.94);
+          transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.32, 0, 0.18, 1);
+          z-index: 4;
+          padding: 0 clamp(16px, 6vw, 48px);
+        }
+        .glass-layer--visible {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          pointer-events: auto;
+        }
+        .glass-modal {
+          width: min(320px, 72vw);
+          aspect-ratio: 142.41 / 216.74;
+          display: grid;
+          place-items: center;
+          border-radius: 26px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.42);
+          box-shadow:
+            0 28px 48px rgba(94, 46, 96, 0.26),
+            inset 0 1px 0 rgba(255,255,255,0.88),
+            inset 0 -12px 32px rgba(255,255,255,0.18);
+          backdrop-filter: blur(46px) saturate(2.25) contrast(1.12);
+          overflow: hidden;
+          position: relative;
+          padding: clamp(18px, 4.8vw, 26px);
+        }
+        .glass-modal::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: linear-gradient(135deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.08) 60%, rgba(255,255,255,0) 100%);
+          mix-blend-mode: screen;
+          opacity: 0.52;
+          pointer-events: none;
+        }
+        .glass-modal::after {
+          content: '';
+          position: absolute;
+          inset: -35%;
+          background:
+            radial-gradient(circle at 20% 18%, rgba(255,255,255,0.32), transparent 60%),
+            radial-gradient(circle at 82% 72%, rgba(186,232,255,0.22), transparent 68%),
+            rgba(255,255,255,0.02);
+          opacity: 0.2;
+          filter: blur(72px) saturate(1.4);
+          pointer-events: none;
+        }
+        .glass-content {
+          display: grid;
+          gap: clamp(12px, 3vw, 20px);
+          text-align: center;
+          color: #2f2352;
+          width: 100%;
+          height: 100%;
+          position: relative;
+          z-index: 1;
+        }
+        .avatar {
+          width: 100%;
+          border-radius: 18px;
+          overflow: hidden;
+          background: rgba(255,255,255,0.24);
+          display: grid;
+          place-items: center;
+        }
+        .placeholder {
+          aspect-ratio: 1 / 1;
+          border-radius: 18px;
+          border: 1px dashed rgba(255,255,255,0.4);
+          background: rgba(255,255,255,0.08);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.36);
+        }
+        .glass-content h3 {
+          margin: 0;
+          font-size: clamp(16px, 4.4vw, 20px);
+          font-weight: 800;
+        }
+        .glass-content p {
+          margin: 0;
+          font-size: clamp(12px, 3.4vw, 14px);
+          font-weight: 500;
+          opacity: 0.82;
+          line-height: 1.52;
+        }
+        .primary {
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.52);
+          background: linear-gradient(135deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0.06) 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.64),
+            0 12px 26px rgba(74, 32, 94, 0.26);
+          backdrop-filter: blur(28px) saturate(1.65);
+          color: #413066;
+          font-weight: 700;
+          font-size: clamp(12px, 3.3vw, 14px);
+          padding: clamp(8px, 2.4vw, 12px) clamp(20px, 5.6vw, 28px);
+          cursor: pointer;
+          transition: box-shadow 180ms ease, transform 180ms ease;
+        }
+        .primary:hover {
+          box-shadow:
+            0 18px 32px rgba(74, 32, 94, 0.32),
+            inset 0 1px 0 rgba(255,255,255,0.72);
+          transform: translateY(-2px);
+        }
+        .primary:focus { outline: none; }
       `}</style>
     </div>
   );
