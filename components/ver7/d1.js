@@ -352,7 +352,8 @@ const AgenticBubble = ({
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
     const boostTarget = boosted ? 1 : 0;
-    const boostLerp = boosted ? 0.14 : 0.04;
+    // boost가 감소할 때 더 느리게 감소하여 부드러운 전환
+    const boostLerp = boosted ? 0.14 : 0.025;
     boostValueRef.current = THREE.MathUtils.lerp(boostValueRef.current, boostTarget, boostLerp);
     if (material.uniforms.boost != null) {
       material.uniforms.boost.value = boostValueRef.current;
@@ -390,7 +391,7 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ boosted, phase, popActive }) => {
+const Scene = ({ boosted, phase, popActive, keepWaterVariant }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
@@ -405,9 +406,15 @@ const Scene = ({ boosted, phase, popActive }) => {
   const topOpacityTarget = phase === 'idle' ? 1 : 0;
   const topScaleTarget = phase === 'transitioning' ? 1.12 : 1;
   const bottomScaleTarget = popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
-  const bottomPositionLerp = phase === 'completed' ? 0.12 : 0.04;
-  const bottomScaleLerp = popActive ? 0.2 : 0.14;
-  const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
+  // 올라가는 동안 더 부드럽게 조정
+  const bottomPositionLerp = phase === 'completed' ? 0.1 : 0.04;
+  // 커지는 속도를 빠르게 (0.2 -> 0.28)
+  const bottomScaleLerp = popActive ? 0.28 : 0.14;
+  
+  // variant 결정: transitioning/settling 단계이거나 keepWaterVariant가 true이면 water 유지
+  // boost가 점진적으로 감소하는 동안 continuity를 유지하기 위해 settling과 completed 초기 단계에서 water 유지
+  const shouldUseWater = phase === 'transitioning' || phase === 'settling' || keepWaterVariant;
+  const bottomVariant = shouldUseWater ? 'water' : 'default';
 
   return (
     <group position={[0, 0.8, 1]} renderOrder={1000}>
@@ -442,7 +449,7 @@ const Scene = ({ boosted, phase, popActive }) => {
   );
 };
 
-const CanvasBackground = ({ boosted, phase, popActive }) => {
+const CanvasBackground = ({ boosted, phase, popActive, keepWaterVariant }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -451,7 +458,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
+        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} keepWaterVariant={keepWaterVariant} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -473,11 +480,13 @@ export default function Ver7_D1() {
   const [boosted, setBoosted] = useState(false);
   const [phase, setPhase] = useState('idle');
   const [popActive, setPopActive] = useState(false);
+  const [keepWaterVariant, setKeepWaterVariant] = useState(false);
   const boostTimeoutRef = useRef(null);
   const settleTimeoutRef = useRef(null);
   const popTimeoutRef = useRef(null);
   const pulseTimeoutRef = useRef(null);
   const calmTimeoutRef = useRef(null);
+  const variantTimeoutRef = useRef(null);
 
   const handleBoost = () => {
     if (phase !== 'idle') return;
@@ -496,15 +505,34 @@ export default function Ver7_D1() {
     if (calmTimeoutRef.current) {
       clearTimeout(calmTimeoutRef.current);
     }
+    if (variantTimeoutRef.current) {
+      clearTimeout(variantTimeoutRef.current);
+    }
     setPopActive(false);
+    setKeepWaterVariant(true);
     setPhase('transitioning');
     setBoosted(true);
     boostTimeoutRef.current = setTimeout(() => {
-      setBoosted(false);
+      // settling 단계로 전환하면서 boost를 점진적으로 감소시키기 위해
+      // 약간의 delay를 두고 서서히 감소
       setPhase('settling');
+      // settling 단계에서도 약간의 boost를 유지하다가 서서히 감소
+      // 하지만 completed로 전환하기 전에는 boost를 완전히 멈추지 않음
       settleTimeoutRef.current = setTimeout(() => {
+        // completed로 전환하면서 올라가기 시작
+        // 올라가는 동안에도 약간의 움직임을 유지하기 위해 boost를 유지
         setPhase('completed');
-      }, 900);
+        // completed로 전환된 후 올라가는 동안(약 800ms) boost를 유지하다가
+        // 블롭이 상단에 도착한 후 서서히 감소
+        setTimeout(() => {
+          setBoosted(false);
+          // boost가 완전히 감소하는 동안(약 800ms) water variant 유지
+          // 그 후 default로 전환하여 자연스러운 연속성 유지
+          variantTimeoutRef.current = setTimeout(() => {
+            setKeepWaterVariant(false);
+          }, 1000);
+        }, 800);
+      }, 600);
     }, 2000);
   };
 
@@ -513,9 +541,10 @@ export default function Ver7_D1() {
       clearTimeout(popTimeoutRef.current);
     }
     if (phase === 'completed') {
+      // 커지는 타이밍을 약간 빠르게 (1500ms -> 1000ms)
       popTimeoutRef.current = setTimeout(() => {
         setPopActive(true);
-      }, 1500);
+      }, 1000);
     } else {
       setPopActive(false);
     }
@@ -534,12 +563,14 @@ export default function Ver7_D1() {
       clearTimeout(calmTimeoutRef.current);
     }
     if (popActive) {
+      // 커지는 동안 매우 짧은 시간만 일렁임을 유지한 후 빠르게 멈춤
       pulseTimeoutRef.current = setTimeout(() => {
         setBoosted(true);
+        // 매우 짧은 시간(600ms)만 일렁임을 유지한 후 빠르게 멈춤
         calmTimeoutRef.current = setTimeout(() => {
           setBoosted(false);
-        }, 2800);
-      }, 1000);
+        }, 600);
+      }, 300);
     } else {
       setBoosted(false);
     }
@@ -570,12 +601,15 @@ export default function Ver7_D1() {
       if (calmTimeoutRef.current) {
         clearTimeout(calmTimeoutRef.current);
       }
+      if (variantTimeoutRef.current) {
+        clearTimeout(variantTimeoutRef.current);
+      }
     };
   }, []);
 
   return (
     <div className={`container ${phase !== 'idle' ? 'container--bright' : ''}`}>
-      <CanvasBackground boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
+      <CanvasBackground boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} keepWaterVariant={keepWaterVariant} />
       <div className={`message-top ${popActive ? 'message-top--visible' : ''}`} aria-hidden={!popActive}>
         <div className="message-top__text">
           <span className="message-eyebrow">안녕하세요! 이솔이에요</span>

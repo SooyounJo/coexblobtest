@@ -64,8 +64,8 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
         base=mix(base,lavender,smoothstep(0.0,0.45,1.0-topness));
         base=mix(base,deepLavender,smoothstep(-0.4,0.2,p.y)*0.35);
         vec3 vibrantGreen=vec3(0.18,0.98,0.62);
-        vec3 richPurple=vec3(0.52,0.34,0.96);
-        vec3 paletteGradient=mix(vibrantGreen, richPurple, smoothstep(-0.2, 0.52, p.y));
+        vec3 leafGreen=vec3(0.25,0.85,0.25);
+        vec3 paletteGradient=mix(vibrantGreen, leafGreen, smoothstep(-0.2, 0.52, p.y));
         base=mix(base, paletteGradient, paletteMix * 0.6);
         float centerGlow = smoothstep(0.32, 0.05, length(p));
         base = mix(base, centerYellow, centerGlow * 0.48);
@@ -91,36 +91,36 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
         float blurAmount=0.012; float f1=topness*1.8+phase+totalRipple+totalElastic + outwardWave; float f2=topness*1.8+phase+blurAmount+totalRipple*0.8+totalElastic*0.6 + outwardWave * 0.72; float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4 + outwardWave * 0.45;
         float perturb=0.01*n2(vUv*1.5+time*0.05); vec3 w1=bandWeights(f1+perturb); vec3 w2=bandWeights(f2+perturb*0.8); vec3 w3=bandWeights(f3+perturb*0.6);
         float wobble1=0.995+0.0025*n2(vUv*2.2+time*0.06); float wobble2=0.995+0.0025*n2(vUv*2.2+time*0.06+1.7); float wobble3=0.995+0.0025*n2(vUv*2.2+time*0.06+3.1); w1*=wobble1; w2*=wobble2; w3*=wobble3;
-        vec3 cY=vec3(0.03,0.90,0.48); vec3 cP=vec3(0.16,0.97,0.68); vec3 cU=vec3(0.82,0.58,0.98);
+        vec3 cY=vec3(0.03,0.90,0.48); vec3 cP=vec3(0.16,0.97,0.68); vec3 cU=vec3(0.30,0.85,0.30);
         w1*=vec3(0.24,1.08,1.02); w2*=vec3(0.24,1.08,1.02); w3*=vec3(0.24,1.08,1.02);
         vec3 flowColor1=cY*w1.x + cP*w1.y + cU*w1.z; vec3 flowColor2=cY*w2.x + cP*w2.y + cU*w2.z; vec3 flowColor3=cY*w3.x + cP*w3.y + cU*w3.z; vec3 flowColor=(0.5*flowColor1 + 0.35*flowColor2 + 0.15*flowColor3);
         float mask1=clamp(w1.x+w1.y+w1.z,0.0,1.0); float mask2=clamp(w2.x+w2.y+w2.z,0.0,1.0); float mask3=clamp(w3.x+w3.y+w3.z,0.0,1.0); float flowMaskAvg=clamp((0.5*mask1 + 0.35*mask2 + 0.15*mask3),0.0,1.0);
         vec3 lit=base; lit=mix(lit,flowColor,flowMaskAvg*0.4);
         vec3 rippleBase=vec3(0.10,0.96,0.42);
-        vec3 rippleAlt=vec3(0.34,0.62,0.98);
+        vec3 rippleAlt=vec3(0.25,0.85,0.25);
         vec3 rippleColor=mix(rippleBase, rippleAlt, paletteMix)*totalRipple*mix(0.38,0.62,boost);
-        vec3 elasticBase=vec3(0.62,0.62,0.98);
-        vec3 elasticAlt=vec3(0.42,0.58,0.96);
+        vec3 elasticBase=vec3(0.30,0.85,0.30);
+        vec3 elasticAlt=vec3(0.20,0.75,0.20);
         vec3 elasticColor=mix(elasticBase, elasticAlt, paletteMix)*totalElastic*mix(0.24,0.45,boost);
         lit+=rippleColor+elasticColor;
         vec3 innerGreen=vec3(0.08,0.82,0.46);
-        vec3 innerPurple=vec3(0.58,0.42,0.96);
-        vec3 edgePurple=vec3(0.36,0.24,0.78);
+        vec3 innerLeafGreen=vec3(0.20,0.80,0.20);
+        vec3 edgeLeafGreen=vec3(0.15,0.70,0.15);
         lit = mix(lit, mix(vec3(0.05,0.78,0.42), innerGreen, paletteMix), smoothstep(0.0,0.45,length(p))*0.18);
-        lit = mix(lit, mix(deepLavender, edgePurple, paletteMix), bottomFactor * 0.32);
-        lit = mix(lit, mix(centerYellow, mix(vibrantGreen, innerPurple, 0.42), paletteMix), centerGlow * 0.62);
+        lit = mix(lit, mix(deepLavender, edgeLeafGreen, paletteMix), bottomFactor * 0.32);
+        lit = mix(lit, mix(centerYellow, mix(vibrantGreen, innerLeafGreen, 0.42), paletteMix), centerGlow * 0.62);
         vec3 V=vec3(0.0,0.0,1.0); 
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.2);
         vec3 rimBase=vec3(0.10,0.85,0.58);
-        vec3 rimAlt=vec3(0.32,0.46,0.96);
+        vec3 rimAlt=vec3(0.25,0.80,0.25);
         vec3 rimGlow=mix(rimBase, rimAlt, paletteMix)*fres*0.46;
         float softHalo=smoothstep(0.42, 0.16, r)*0.12;
-        vec3 glow=rimGlow + mix(vec3(0.72,0.58,0.94), vec3(0.46,0.70,0.96), paletteMix)*softHalo;
+        vec3 glow=rimGlow + mix(vec3(0.72,0.58,0.94), vec3(0.30,0.85,0.30), paletteMix)*softHalo;
         lit+=glow;
         vec3 undersideGreen=vec3(0.12,0.94,0.62);
         lit+=mix(vec3(0.05,0.90,0.50), undersideGreen, paletteMix)*(1.0-topness)*mix(0.08,0.22,boost);
-        vec3 highlightPurple=vec3(0.62,0.44,0.98);
-        lit+=mix(centerYellow, highlightPurple, paletteMix * 0.58) * centerGlow * mix(0.18,0.32,boost);
+        vec3 highlightLeafGreen=vec3(0.35,0.90,0.35);
+        lit+=mix(centerYellow, highlightLeafGreen, paletteMix * 0.58) * centerGlow * mix(0.18,0.32,boost);
         vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
         float loopPhase = 0.5 + 0.5 * sin(6.28318530718 * time / 7.0);
         float sat = 1.0 + 0.85 * loopPhase;
@@ -269,7 +269,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         w1*=wobble1; w2*=wobble2; w3*=wobble3;
         vec3 cY=vec3(0.10,0.92,0.58);
         vec3 cP=vec3(0.22,0.96,0.70);
-        vec3 cU=vec3(0.66,0.50,0.98);
+        vec3 cU=vec3(0.30,0.85,0.30);
         w1*=vec3(0.22,1.10,1.05);
         w2*=vec3(0.22,1.10,1.05);
         w3*=vec3(0.22,1.10,1.05);
@@ -284,17 +284,17 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         vec3 lit=base;
         lit=mix(lit,flowColor,flowMaskAvg*mix(0.32,0.58,boost));
         vec3 rippleColor=vec3(0.10,0.98,0.52)*totalRipple*mix(0.18,0.36,boost);
-        vec3 elasticColor=vec3(0.58,0.60,0.96)*totalElastic*mix(0.14,0.28,boost);
+        vec3 elasticColor=vec3(0.30,0.85,0.30)*totalElastic*mix(0.14,0.28,boost);
         lit+=rippleColor+elasticColor;
         float centerGlow = smoothstep(0.34, 0.08, r);
         lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
-        vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
+        vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.25,0.85,0.25), paletteMix);
         lit = mix(lit, paletteTint, paletteMix * 0.28);
         vec3 V=vec3(0.0,0.0,1.0);
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
         vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
         float softHalo=smoothstep(0.38, 0.14, r)*0.12;
-        vec3 glow=rimGlow + vec3(0.68,0.54,0.96)*softHalo;
+        vec3 glow=rimGlow + vec3(0.30,0.85,0.30)*softHalo;
         lit+=glow;
         lit+=vec3(0.08,0.94,0.60)*(1.0-topness)*mix(0.12,0.22,boost);
         vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
@@ -390,245 +390,9 @@ const AgenticBubble = ({
   );
 };
 
-// 미니 블롭 전용 민트 컬러 shader material
-const createMintShaderMaterial = () => new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 },
-    lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
-    ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
-    boost: { value: 0 },
-    globalAlpha: { value: 1 },
-    paletteMix: { value: 1 }, // 민트 컬러 강조를 위해 높게 설정
-  },
-  vertexShader: `
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      varying vec3 vWorldPos;
-      void main() {
-        vUv = uv;
-        vNormal = normalize(normalMatrix * normal);
-        vec4 worldPos = modelMatrix * vec4(position, 1.0);
-        vWorldPos = worldPos.xyz;
-        gl_Position = projectionMatrix * viewMatrix * worldPos;
-      }
-    `,
-  fragmentShader: `
-      precision highp float;
-      uniform float time;
-      uniform vec3 lightDir;
-      uniform vec3 ringDir;
-      uniform float boost;
-      uniform float globalAlpha;
-      uniform float paletteMix;
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y);}      
-      float n2(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0)); vec2 u=f*f*(3.0-2.0*f); return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);}      
-      float noise(vec2 p) { return sin(p.x) * cos(p.y) + sin(p.x*2.0)*cos(p.y*2.0)*0.5; }
-      float elasticWave(float x, float frequency, float amplitude){ float wave=sin(x*frequency)*amplitude; float decay=exp(-x*0.05); float bounce=sin(x*frequency*2.0)*amplitude*0.3; return (wave+bounce)*decay; }
-      float breathingMotion(float time){ float slow=sin(time*0.3)*0.15; float fast=sin(time*0.8)*0.08; float deep=sin(time*0.15)*0.25; return slow+fast+deep; }
-      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=fwidth(f)*1.2; return smoothstep(w+aa,0.0+aa,d);}      
-      vec3 bandWeights(float f){ float width=0.25; float y=bumpMove(0.18,width,f); float p=bumpMove(0.52,width,f); float u=bumpMove(0.86,width,f); return vec3(y,p,u);}      
-      float softBlur(float x, float strength) {
-        return exp(-x * x / strength);
-      }
-      void main(){
-        vec3 N=normalize(vNormal); vec3 L=normalize(lightDir); vec2 p=vUv-0.5; float r=length(p);
-        float breathing=breathingMotion(time * 0.32);
-        r=r*(1.0+breathing*0.14);
-        float topness=clamp(dot(N,normalize(ringDir))*0.5+0.5,0.0,1.0);
-        // 민트 컬러 팔레트 강조
-        vec3 mintGreen=vec3(0.20, 0.95, 0.70);
-        vec3 lightMint=vec3(0.35, 0.98, 0.80);
-        vec3 emerald=vec3(0.08, 0.88, 0.55);
-        vec3 turquoise=vec3(0.15, 0.90, 0.75);
-        vec3 softMint=vec3(0.40, 0.96, 0.82);
-        vec3 base=mix(lightMint, mintGreen, clamp(0.4+0.6*topness,0.0,1.0));
-        base=mix(base, emerald, smoothstep(0.12,0.38,topness));
-        base=mix(base, turquoise, smoothstep(0.0,0.35,1.0-topness));
-        base=mix(base, softMint, smoothstep(-0.3,0.15,p.y)*0.4);
-        // 민트 그라디언트 강화
-        vec3 mintGradient=mix(mintGreen, lightMint, smoothstep(-0.2, 0.5, p.y));
-        base=mix(base, mintGradient, 0.75);
-        float centerGlow = smoothstep(0.32, 0.05, length(p));
-        base = mix(base, softMint, centerGlow * 0.35);
-        float bottomFactor = 1.0 - smoothstep(-0.45, 0.05, p.y);
-        base = mix(base, emerald, bottomFactor * 0.45);
-        float loopSec=10.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
-        float boostFactor = 1.0 + boost * 2.0;
-        float waveSpeed = mix(1.0, 2.5, boost);
-        float waveFreq  = mix(8.0, 16.0, boost);
-        float pulse = 0.5 + 0.5 * sin(time * mix(0.5, 0.9, boost));
-        pulse = smoothstep(0.25, 0.9, pulse);
-        float wave0 = sin(waveFreq * r - waveSpeed * time);
-        float wave1 = sin((waveFreq * 1.6) * r - (waveSpeed * 1.2) * time);
-        float wave2 = sin((waveFreq * 2.3) * r - (waveSpeed * 1.6) * time + 1.2);
-        float radialEnv = smoothstep(0.0, 0.9, r);
-        float outwardWave = radialEnv * pulse * (
-          mix(0.08, 0.22, boost) * wave0 +
-          mix(0.05, 0.15, boost) * wave1 +
-          mix(0.03, 0.10, boost) * wave2
-        );
-        float ripple1=noise(vUv*3.0+time*0.26)*0.015*boostFactor; float ripple2=noise(vUv*5.0+time*0.2)*0.01*boostFactor; float ripple3=noise(vUv*7.0+time*0.4)*0.006*boostFactor; float totalRipple=ripple1+ripple2+ripple3;
-        float elastic1=elasticWave(topness*2.0+time*0.32,3.0,0.04*boostFactor); float elastic2=elasticWave(topness*3.0+time*0.52,2.1,0.03*boostFactor); float totalElastic=elastic1+elastic2;
-        float blurAmount=0.012; float f1=topness*1.8+phase+totalRipple+totalElastic + outwardWave; float f2=topness*1.8+phase+blurAmount+totalRipple*0.8+totalElastic*0.6 + outwardWave * 0.72; float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4 + outwardWave * 0.45;
-        float perturb=0.01*n2(vUv*1.5+time*0.05); vec3 w1=bandWeights(f1+perturb); vec3 w2=bandWeights(f2+perturb*0.8); vec3 w3=bandWeights(f3+perturb*0.6);
-        float wobble1=0.995+0.002*n2(vUv*2.2+time*0.06); float wobble2=0.995+0.002*n2(vUv*2.2+time*0.06+1.7); float wobble3=0.995+0.002*n2(vUv*2.2+time*0.06+3.1); w1*=wobble1; w2*=wobble2; w3*=wobble3;
-        // 민트 컬러 강조
-        vec3 cY=vec3(0.15,0.92,0.65); vec3 cP=vec3(0.25,0.96,0.75); vec3 cU=vec3(0.30,0.94,0.78);
-        w1*=vec3(0.8,1.12,1.05); w2*=vec3(0.8,1.12,1.05); w3*=vec3(0.8,1.12,1.05);
-        vec3 flowColor1=cY*w1.x + cP*w1.y + cU*w1.z; vec3 flowColor2=cY*w2.x + cP*w2.y + cU*w2.z; vec3 flowColor3=cY*w3.x + cP*w3.y + cU*w3.z; vec3 flowColor=(0.5*flowColor1 + 0.35*flowColor2 + 0.15*flowColor3);
-        float mask1=clamp(w1.x+w1.y+w1.z,0.0,1.0); float mask2=clamp(w2.x+w2.y+w2.z,0.0,1.0); float mask3=clamp(w3.x+w3.y+w3.z,0.0,1.0); float flowMaskAvg=clamp((0.5*mask1 + 0.35*mask2 + 0.15*mask3),0.0,1.0);
-        vec3 lit=base; lit=mix(lit,flowColor,flowMaskAvg*0.5);
-        vec3 rippleMint=vec3(0.18,0.95,0.68);
-        vec3 rippleColor=rippleMint*totalRipple*mix(0.32,0.52,boost);
-        vec3 elasticMint=vec3(0.22,0.92,0.72);
-        vec3 elasticColor=elasticMint*totalElastic*mix(0.20,0.38,boost);
-        lit+=rippleColor+elasticColor;
-        vec3 innerMint=vec3(0.12,0.88,0.65);
-        lit = mix(lit, innerMint, smoothstep(0.0,0.45,length(p))*0.15);
-        lit = mix(lit, emerald, bottomFactor * 0.28);
-        lit = mix(lit, softMint, centerGlow * 0.55);
-        vec3 V=vec3(0.0,0.0,1.0); 
-        float fres=pow(1.0 - max(dot(N,V),0.0), 2.2);
-        vec3 rimMint=vec3(0.20,0.90,0.70);
-        vec3 rimGlow=rimMint*fres*0.42;
-        float softHalo=smoothstep(0.42, 0.16, r)*0.12;
-        vec3 glow=rimGlow + mintGreen*softHalo;
-        lit+=glow;
-        vec3 undersideMint=vec3(0.18,0.92,0.68);
-        lit+=undersideMint*(1.0-topness)*mix(0.06,0.18,boost);
-        lit+=softMint * centerGlow * mix(0.15,0.28,boost);
-        vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
-        float loopPhase = 0.5 + 0.5 * sin(6.28318530718 * time / 7.0);
-        float sat = 1.0 + 0.7 * loopPhase;
-        lit = mix(gray, lit, sat);
-        float brightness = 1.0 + 0.12 * loopPhase;
-        lit *= brightness;
-        float contrast = 1.0 + 0.28 * loopPhase;
-        lit = (lit - 0.5) * contrast + 0.5;
-        lit=pow(lit,vec3(0.92)); lit*=mix(1.0,1.04,boost); lit=mix(lit,vec3(1.0),0.02); lit=clamp(lit,0.0,1.0);
-        float edgeBase = smoothstep(0.56, 0.32, r);
-        float edgeGlow = softBlur(r - 0.4, 0.15);
-        float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.3);
-        float alpha = 0.88 * edgeFeather + fres * 0.15;
-        alpha = alpha * (1.0 - softBlur(r - 0.45, 0.2) * 0.3);
-        alpha = clamp(alpha, 0.0, 0.95);
-        gl_FragColor=vec4(lit,alpha * globalAlpha);
-      }
-    `,
-  transparent: true,
-});
-
-// 미니 블롭 컴포넌트
-const MiniBubble = ({
-  startPosition,
-  targetPosition,
-  phase,
-  delay = 0,
-  scale = 0.32,
-}) => {
-  const material = useMemo(() => createMintShaderMaterial(), []);
-  const meshRef = useRef(null);
-  const [spawnTime, setSpawnTime] = useState(null);
-  const opacityRef = useRef(0);
-  const scaleRef = useRef(0); // 시작 시 0에서 시작하여 커짐
-  const positionRef = useRef(new THREE.Vector3(...startPosition));
-  const targetPositionRef = useRef(new THREE.Vector3(...targetPosition));
-  const currentTargetRef = useRef(new THREE.Vector3(...targetPosition));
-
-  useEffect(() => {
-    // completed/settling phase로 전환될 때 생성 시간 기록
-    if ((phase === 'completed' || phase === 'settling') && spawnTime === null) {
-      setSpawnTime(Date.now());
-      targetPositionRef.current.set(...targetPosition);
-      currentTargetRef.current.set(...targetPosition);
-      positionRef.current.set(...startPosition);
-    }
-  }, [phase, targetPosition, startPosition, spawnTime]);
-
-  useFrame((state, delta) => {
-    material.uniforms.time.value += delta;
-    const time = state.clock.getElapsedTime();
-
-    // completed/settling phase에서만 표시
-    if (phase === 'completed' || phase === 'settling') {
-      if (spawnTime !== null) {
-        const elapsed = (Date.now() - spawnTime) / 1000; // 초 단위
-        const delayTime = delay;
-        
-        // 지연 후 나타남
-        if (elapsed >= delayTime) {
-          const spawnProgress = Math.min((elapsed - delayTime) / 0.6, 1); // 0.6초에 걸쳐 나타남
-          
-          // opacity: 0에서 0.85로 증가
-          opacityRef.current = THREE.MathUtils.lerp(
-            opacityRef.current,
-            0.85 * spawnProgress,
-            0.18
-          );
-          
-          // scale: 0에서 목표 크기로 증가
-          scaleRef.current = THREE.MathUtils.lerp(
-            scaleRef.current,
-            scale * spawnProgress,
-            0.22
-          );
-          
-          // 위치: 시작 위치에서 타겟 위치로 이동하면서 떠다님
-          const moveProgress = Math.min((elapsed - delayTime) / 2.5, 1); // 2.5초에 걸쳐 이동
-          const lerpSpeed = 0.06 * (1 - moveProgress * 0.4); // 점점 느려지면서 이동
-          positionRef.current.lerp(currentTargetRef.current, lerpSpeed);
-          
-          // 떠다니는 애니메이션 (부유 효과) - 화면 하단에서 부드럽게 부유
-          const floatY = Math.sin(time * 0.5 + delay * 10) * 0.12; // 화면 하단에서 크게 벗어나지 않도록 감소
-          const floatX = Math.cos(time * 0.45 + delay * 8) * 0.14;
-          const floatZ = Math.sin(time * 0.5 + delay * 12) * 0.12;
-          
-          // 회전 애니메이션 추가
-          const rotateY = time * 0.3 + delay * 5;
-          const rotateX = Math.sin(time * 0.4 + delay * 7) * 0.18;
-          
-          if (meshRef.current) {
-            const finalPos = new THREE.Vector3(
-              positionRef.current.x + floatX,
-              positionRef.current.y + floatY,
-              positionRef.current.z + floatZ
-            );
-            meshRef.current.position.copy(finalPos);
-            
-            // 회전 적용
-            meshRef.current.rotation.y = rotateY;
-            meshRef.current.rotation.x = rotateX;
-            
-            // 호흡 애니메이션
-            const breatheFactor = 1 + Math.sin(time * 0.5 + delay * 6) * 0.12;
-            meshRef.current.scale.setScalar(scaleRef.current * breatheFactor);
-          }
-        }
-      }
-    } else {
-      // 다른 phase에서는 보이지 않음
-      opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, 0, 0.25);
-      scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, 0, 0.25);
-    }
-
-    if (material.uniforms.globalAlpha != null) {
-      material.uniforms.globalAlpha.value = opacityRef.current;
-    }
-  });
-
-  return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[0.58, 64, 64]} />
-      <primitive object={material} attach="material" />
-    </mesh>
-  );
-};
-
 const Scene = ({ boosted, phase, popActive }) => {
   const { camera, viewport } = useThree();
-  const v = viewport.getCurrentViewport(camera, [0, 0, 0]);
+  viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
 
   const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
@@ -645,98 +409,36 @@ const Scene = ({ boosted, phase, popActive }) => {
   const bottomScaleLerp = popActive ? 0.2 : 0.14;
   const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
 
-  // settling phase에서 completed로 전환될 때 블롭이 커지며 아래로 내려오는 순간 작은 블롭 생성
-  // 화면 하단 위치 계산
-  const screenBottomY = useMemo(() => -v.height / 2 - 0.6, [v.height]); // 화면 극하단 위치
-  
-  const miniBubblesConfig = useMemo(() => {
-    // settling/completed phase가 아니면 빈 배열
-    if (phase !== 'settling' && phase !== 'completed') {
-      return [];
-    }
-    
-    const count = 3;
-    const configs = [];
-    
-    // 고정된 시드 값으로 결정적 위치 생성
-    const fixedSeeds = [0.12, 0.56, 0.34];
-    const fixedDelays = [0.0, 0.15, 0.08]; // 생성 시각 차이
-    const fixedScales = [0.32, 0.35, 0.30];
-    
-    // 화면 하단을 기준으로 다양한 위치에 배치 (가로로 퍼져서 배치)
-    const horizontalOffsets = [-1.2, 0, 1.2]; // x 오프셋 (왼쪽, 중앙, 오른쪽)
-    const baseY = 0; // 그룹 내부 상대 y (그룹 자체가 화면 하단에 배치됨)
-    const baseZ = 0; // 그룹 내부 상대 z
-    
-    for (let i = 0; i < count; i++) {
-      // 시작 위치: 화면 하단 기준으로 가로로 퍼져서 배치
-      const startX = horizontalOffsets[i] + (fixedSeeds[i] - 0.5) * 0.3; // 약간의 랜덤성
-      const startY = baseY + (fixedSeeds[i] - 0.5) * 0.2; // 약간의 높이 차이
-      const startZ = baseZ + (fixedSeeds[i] - 0.5) * 0.4; // 깊이 차이
-      
-      // 타겟 위치: 화면 하단 근처에서 떠다니는 위치 (화면 하단에서 크게 벗어나지 않고 부유)
-      const targetX = horizontalOffsets[i] + (fixedSeeds[i] - 0.5) * 0.5; // 더 넓게 퍼짐
-      const targetY = baseY + 0.15 + (fixedSeeds[i] - 0.5) * 0.25; // 화면 하단 근처에서 약간만 위로 (0.15만큼)
-      const targetZ = baseZ + (fixedSeeds[i] - 0.5) * 0.6; // 깊이 더 다양하게
-      
-      configs.push({
-        startPosition: [startX, startY, startZ],
-        targetPosition: [targetX, targetY, targetZ],
-        delay: fixedDelays[i],
-        scale: fixedScales[i],
-      });
-    }
-    return configs;
-  }, [phase]);
-
   return (
-    <>
-      {/* 메인 블롭들 */}
-      <group position={[0, 0.8, 1]} renderOrder={1000}>
-        <AgenticBubble
-          boosted={false}
-          position={topPosition}
-          targetPosition={topPosition}
-          variant="default"
-          opacityTarget={topOpacityTarget}
-          scaleTarget={topScaleTarget}
-          positionLerp={0.08}
-          opacityLerp={0.06}
-          scaleLerp={0.18}
-          paletteTarget={0}
-          paletteLerp={0.1}
-        />
-        <AgenticBubble
-          boosted={boosted}
-          position={bottomStartPosition}
-          targetPosition={bottomTargetPosition}
-          variant={bottomVariant}
-          opacityTarget={1}
-          scaleTarget={bottomScaleTarget}
-          positionLerp={bottomPositionLerp}
-          opacityLerp={0.1}
-          scaleLerp={bottomScaleLerp}
-          paletteTarget={popActive ? 0.7 : 0.2}
-          paletteLerp={0.16}
-          breathe={popActive}
-        />
-      </group>
-      {/* 미니 블롭들 - completed/settling phase에서만 생성되어 화면 하단에서 부유 */}
-      {(phase === 'completed' || phase === 'settling') && (
-        <group position={[0, screenBottomY, 1]} renderOrder={999}>
-          {miniBubblesConfig.map((config, index) => (
-            <MiniBubble
-              key={`mini-${phase}-${index}`}
-              startPosition={config.startPosition}
-              targetPosition={config.targetPosition}
-              phase={phase}
-              delay={config.delay}
-              scale={config.scale}
-            />
-          ))}
-        </group>
-      )}
-    </>
+    <group position={[0, 0.8, 1]} renderOrder={1000}>
+      <AgenticBubble
+        boosted={false}
+        position={topPosition}
+        targetPosition={topPosition}
+        variant="default"
+        opacityTarget={topOpacityTarget}
+        scaleTarget={topScaleTarget}
+        positionLerp={0.08}
+        opacityLerp={0.06}
+        scaleLerp={0.18}
+        paletteTarget={0}
+        paletteLerp={0.1}
+      />
+      <AgenticBubble
+        boosted={boosted}
+        position={bottomStartPosition}
+        targetPosition={bottomTargetPosition}
+        variant={bottomVariant}
+        opacityTarget={1}
+        scaleTarget={bottomScaleTarget}
+        positionLerp={bottomPositionLerp}
+        opacityLerp={0.1}
+        scaleLerp={bottomScaleLerp}
+        paletteTarget={popActive ? 0.7 : 0.2}
+        paletteLerp={0.16}
+        breathe={popActive}
+      />
+    </group>
   );
 };
 
@@ -767,7 +469,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
   );
 };
 
-export default function Ver7_D3() {
+export default function Ver7_D4() {
   const [boosted, setBoosted] = useState(false);
   const [phase, setPhase] = useState('idle');
   const [popActive, setPopActive] = useState(false);
@@ -874,12 +576,6 @@ export default function Ver7_D3() {
   return (
     <div className={`container ${phase !== 'idle' ? 'container--bright' : ''}`}>
       <CanvasBackground boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
-      <div className={`message-top ${popActive ? 'message-top--visible' : ''}`} aria-hidden={!popActive}>
-        <div className="message-top__text">
-          <span className="message-eyebrow">안녕하세요! 이솔이에요</span>
-          <span className="message-sub">코엑스 안내를 도와드릴게요</span>
-        </div>
-      </div>
       <div className={`hero ${phase !== 'idle' ? 'hero--exit' : ''}`} aria-hidden={phase !== 'idle'}>
         <div className="eyebrow">Welcome To</div>
         <h1 className="title">Sori<br />Coex Guide</h1>
@@ -1052,12 +748,13 @@ export default function Ver7_D3() {
         .glass-content::after {
           content: '';
           position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 65%;
-          background: linear-gradient(to top, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.12) 60%, transparent 100%);
-          border-radius: inherit;
+          inset: -30%;
+          background:
+            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.24), transparent 60%),
+            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.18), transparent 70%),
+            rgba(255,255,255,0.018);
+          opacity: 0.16;
+          filter: blur(60px) saturate(1.4);
           pointer-events: none;
         }
         .avatar {
@@ -1107,37 +804,8 @@ export default function Ver7_D3() {
           transform: translateY(-2px);
         }
         .primary:focus { outline: none; }
-        .message-top {
-          position: absolute;
-          top: clamp(24px, 8vh, 80px);
-          left: 0;
-          right: 0;
-          display: flex;
-          justify-content: center;
-          pointer-events: none;
-          opacity: 0;
-          transform: translateY(-20px);
-          transition: opacity 1.1s ease, transform 1.1s cubic-bezier(0.32, 0, 0.18, 1);
-          z-index: 3;
-        }
-        .message-top--visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        .message-top__text {
-          display: inline-flex;
-          flex-direction: column;
-          align-items: center;
-          gap: clamp(4px, 1.2vw, 8px);
-          padding: 0;
-          color: #35295C;
-          font-weight: 700;
-          text-align: center;
-        }
-        .message-top__text .message-sub {
-          color: #514570;
-        }
       `}</style>
     </div>
   );
 }
+

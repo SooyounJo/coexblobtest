@@ -16,12 +16,16 @@ import Ver6_3_2 from '../components/ver6/3-2';
 const Ver7_D1 = dynamic(() => import('../components/ver7/d1'), { ssr: false });
 const Ver7_D2 = dynamic(() => import('../components/ver7/d2'), { ssr: false });
 const Ver7_D3 = dynamic(() => import('../components/ver7/d3'), { ssr: false });
+const Ver7_D4 = dynamic(() => import('../components/ver7/d4'), { ssr: false });
+const Ver7_D5 = dynamic(() => import('../components/ver7/d5'), { ssr: false });
+const Ver8_1_3 = dynamic(() => import('../components/ver8/1-3'), { ssr: false });
 
 export default function Home() {
   const [selectedVersion, setSelectedVersion] = useState(null);
   const [selectedVer5Component, setSelectedVer5Component] = useState(null);
   const [selectedVer6Component, setSelectedVer6Component] = useState(null);
   const [selectedVer7Component, setSelectedVer7Component] = useState(null);
+  const [selectedVer8Component, setSelectedVer8Component] = useState(null);
 
   const renderContent = () => {
     if (selectedVersion === 'ver1') {
@@ -66,8 +70,19 @@ export default function Home() {
           return <Ver7_D2 />;
         case 'ver7_d3':
           return <Ver7_D3 />;
+        case 'ver7_d4':
+          return <Ver7_D4 />;
+        case 'ver7_d5':
+          return <Ver7_D5 />;
         default:
           return <div>Select a Ver7 component to display.</div>;
+      }
+    } else if (selectedVersion === 'ver8') {
+      switch (selectedVer8Component) {
+        case 'ver8_1-3':
+          return <Ver8_1_3 />;
+        default:
+          return <div>Select a Ver8 component to display.</div>;
       }
     }
     return <div>Select a version to display.</div>;
@@ -105,10 +120,11 @@ export default function Home() {
           {renderContent()}
           {/* Floating version buttons attached to interface (top-left) */}
           <div style={{ position: 'absolute', left: 10, top: 10, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 5001 }}>
-            <CircleButton label="V1" active={selectedVersion === 'ver1'} onClick={() => { setSelectedVersion('ver1'); setSelectedVer6Component(null); }} />
-            <CircleButton label="V5" active={selectedVersion === 'ver5'} onClick={() => { setSelectedVersion('ver5'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer5Component('n1'); }} />
-            <CircleButton label="V6" active={selectedVersion === 'ver6'} onClick={() => { setSelectedVersion('ver6'); setSelectedVer5Component(null); setSelectedVer7Component(null); setSelectedVer6Component('ver6_1'); }} />
-            <CircleButton label="V7" active={selectedVersion === 'ver7'} onClick={() => { setSelectedVersion('ver7'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer7Component('ver7_d1'); }} />
+            <CircleButton label="V1" active={selectedVersion === 'ver1'} onClick={() => { setSelectedVersion('ver1'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); }} />
+            <CircleButton label="V5" active={selectedVersion === 'ver5'} onClick={() => { setSelectedVersion('ver5'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer5Component('n1'); }} />
+            <CircleButton label="V6" active={selectedVersion === 'ver6'} onClick={() => { setSelectedVersion('ver6'); setSelectedVer5Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer6Component('ver6_1'); }} />
+            <CircleButton label="V7" active={selectedVersion === 'ver7'} onClick={() => { setSelectedVersion('ver7'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer8Component(null); setSelectedVer7Component('ver7_d1'); }} />
+            <CircleButton label="V8" active={selectedVersion === 'ver8'} onClick={() => { setSelectedVersion('ver8'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component('ver8_1-3'); }} />
           </div>
           {selectedVersion === 'ver5' && (
             <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5000 }}>
@@ -134,6 +150,13 @@ export default function Home() {
               <CircleButton label="d1" active={selectedVer7Component === 'ver7_d1'} onClick={() => setSelectedVer7Component('ver7_d1')} />
               <CircleButton label="d2" active={selectedVer7Component === 'ver7_d2'} onClick={() => setSelectedVer7Component('ver7_d2')} />
               <CircleButton label="d3" active={selectedVer7Component === 'ver7_d3'} onClick={() => setSelectedVer7Component('ver7_d3')} />
+              <CircleButton label="d4" active={selectedVer7Component === 'ver7_d4'} onClick={() => setSelectedVer7Component('ver7_d4')} />
+              <CircleButton label="d5" active={selectedVer7Component === 'ver7_d5'} onClick={() => setSelectedVer7Component('ver7_d5')} />
+            </div>
+          )}
+          {selectedVersion === 'ver8' && (
+            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5000 }}>
+              <CircleButton label="1-3" active={selectedVer8Component === 'ver8_1-3'} onClick={() => setSelectedVer8Component('ver8_1-3')} />
             </div>
           )}
         </div>
