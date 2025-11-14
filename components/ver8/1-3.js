@@ -396,7 +396,11 @@ const Scene = ({ boosted, phase, popActive }) => {
   const spacing = 1.68;
 
   const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
-  const bottomStartPosition = useMemo(() => [0, -(spacing + 0.3), 0], [spacing]);
+  // completed phase에서는 이미 상단으로 이동한 상태이므로 bottomStartPosition도 상단 위치로 설정
+  const bottomStartPosition = useMemo(() => 
+    phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0], 
+    [phase, spacing]
+  );
   const bottomTargetPosition = useMemo(
     () => (phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0]),
     [phase, spacing],
@@ -470,52 +474,31 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
 };
 
 export default function Ver8_1_3() {
+  // 초기 상태를 'completed'로 설정하여 블롭이 이미 커진 상태에서 시작
   const [boosted, setBoosted] = useState(false);
-  const [phase, setPhase] = useState('idle');
-  const [popActive, setPopActive] = useState(false);
+  const [phase, setPhase] = useState('completed');
+  const [popActive, setPopActive] = useState(true); // 초기 상태에서 popActive를 true로 설정하여 블롭이 커진 상태로 시작
   const boostTimeoutRef = useRef(null);
   const settleTimeoutRef = useRef(null);
   const popTimeoutRef = useRef(null);
   const pulseTimeoutRef = useRef(null);
   const calmTimeoutRef = useRef(null);
 
-  const handleBoost = () => {
-    if (phase !== 'idle') return;
-    if (boostTimeoutRef.current) {
-      clearTimeout(boostTimeoutRef.current);
-    }
-    if (settleTimeoutRef.current) {
-      clearTimeout(settleTimeoutRef.current);
-    }
-    if (popTimeoutRef.current) {
-      clearTimeout(popTimeoutRef.current);
-    }
-    if (pulseTimeoutRef.current) {
-      clearTimeout(pulseTimeoutRef.current);
-    }
-    if (calmTimeoutRef.current) {
-      clearTimeout(calmTimeoutRef.current);
-    }
-    setPopActive(false);
-    setPhase('transitioning');
-    setBoosted(true);
-    boostTimeoutRef.current = setTimeout(() => {
-      setBoosted(false);
-      setPhase('settling');
-      settleTimeoutRef.current = setTimeout(() => {
-        setPhase('completed');
-      }, 900);
-    }, 2000);
-  };
+  // 초기 마운트 시 popActive가 활성화되도록 설정
+  useEffect(() => {
+    // 컴포넌트 마운트 시 즉시 popActive를 true로 설정
+    setPopActive(true);
+  }, []);
 
   useEffect(() => {
     if (popTimeoutRef.current) {
       clearTimeout(popTimeoutRef.current);
     }
     if (phase === 'completed') {
-      popTimeoutRef.current = setTimeout(() => {
+      // completed phase에서는 이미 popActive가 true이므로 타임아웃 없이 유지
+      if (!popActive) {
         setPopActive(true);
-      }, 1500);
+      }
     } else {
       setPopActive(false);
     }
@@ -524,7 +507,7 @@ export default function Ver8_1_3() {
         clearTimeout(popTimeoutRef.current);
       }
     };
-  }, [phase]);
+  }, [phase, popActive]);
 
   useEffect(() => {
     if (pulseTimeoutRef.current) {
@@ -574,21 +557,8 @@ export default function Ver8_1_3() {
   }, []);
 
   return (
-    <div className={`container ${phase !== 'idle' ? 'container--bright' : ''}`}>
-      <CanvasBackground boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
-      <div className={`hero ${phase !== 'idle' ? 'hero--exit' : ''}`} aria-hidden={phase !== 'idle'}>
-        <div className="eyebrow">Welcome To</div>
-        <h1 className="title">Sori<br />Coex Guide</h1>
-        <p className="subtitle">오늘 538번째로 대화하는 중이에요</p>
-      </div>
-      <button
-        className={`cta ${phase !== 'idle' ? 'cta--exit' : ''}`}
-        onClick={handleBoost}
-        disabled={phase !== 'idle'}
-        aria-hidden={phase !== 'idle'}
-      >
-        시작하기
-      </button>
+    <div className="container container--bright">
+      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
       {popActive && (
         <div className="glass-overlay glass-overlay--visible" aria-hidden={!popActive}>
           <div className="glass-modal">
@@ -610,93 +580,12 @@ export default function Ver8_1_3() {
           width: 100%;
           height: 100vh;
           overflow: hidden;
-          background: radial-gradient(circle at 30% 25%, #fdf0f6 0%, #fce6ef 45%, #f7d7e4 100%);
+          background: radial-gradient(circle at 30% 20%, #fff6fb 0%, #fdeef5 38%, #fadce8 100%);
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
         }
         .container--bright {
           background: radial-gradient(circle at 30% 20%, #fff6fb 0%, #fdeef5 38%, #fadce8 100%);
-        }
-        .hero {
-          position: absolute;
-          bottom: clamp(120px, 20vh, 220px);
-          left: clamp(18px, 6vw, 64px);
-          right: clamp(18px, 6vw, 64px);
-          color: #4e4967;
-          z-index: 2;
-          pointer-events: none;
-          text-shadow: 0 18px 48px rgba(15, 40, 36, 0.18);
-          transition: transform 2s cubic-bezier(0.45, 0, 0.25, 1), opacity 2s ease, filter 2s ease;
-        }
-        .hero--exit {
-          transform: translateY(96px);
-          opacity: 0;
-          filter: blur(6px);
-          pointer-events: none;
-        }
-        .eyebrow {
-          font-size: clamp(14px, 3.4vw, 18px);
-          font-weight: 600;
-          letter-spacing: 0.02em;
-          margin-bottom: clamp(6px, 1.6vw, 12px);
-        }
-        .title {
-          margin: 0 0 clamp(10px, 2.5vw, 18px) 0;
-          font-size: clamp(40px, 10vw, 62px);
-          line-height: 1.05;
-          font-weight: 900;
-        }
-        .subtitle {
-          margin: 0;
-          font-size: clamp(14px, 3.2vw, 18px);
-          font-weight: 600;
-          opacity: 0.82;
-        }
-        .cta {
-          position: absolute;
-          left: 50%;
-          bottom: clamp(40px, 8vh, 72px);
-          transform: translateX(-50%);
-          width: clamp(240px, 92vw, 360px);
-          height: clamp(44px, 9.6vw, 56px);
-          border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.45);
-          background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.42) 45%, rgba(255,255,255,0.18) 100%);
-          box-shadow:
-            0 18px 36px rgba(36, 82, 94, 0.22),
-            inset 0 1px 0 rgba(255,255,255,0.88);
-          backdrop-filter: blur(22px) saturate(1.55);
-          color: #4e4967;
-          font-size: clamp(14px, 4.2vw, 17px);
-          font-weight: 800;
-          padding: 0 clamp(12px, 4vw, 18px);
-          cursor: pointer;
-          z-index: 3;
-          box-sizing: border-box;
-          transition:
-            transform 160ms ease,
-            box-shadow 160ms ease,
-            background 160ms ease,
-            color 160ms ease,
-            opacity 2s ease,
-            filter 2s ease;
-        }
-        .cta:hover {
-          transform: translateX(-50%) translateY(-2px);
-          box-shadow:
-            0 24px 46px rgba(36, 82, 94, 0.28),
-            inset 0 1px 0 rgba(255,255,255,0.92);
-          background: linear-gradient(135deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.52) 48%, rgba(255,255,255,0.26) 100%);
-          color: #443f60;
-        }
-        .cta--exit {
-          transform: translateX(-50%) translateY(32px);
-          opacity: 0;
-          filter: blur(5px);
-          pointer-events: none;
-        }
-        .cta--exit:hover {
-          transform: translateX(-50%) translateY(32px);
         }
         .glass-overlay {
           position: absolute;
@@ -808,4 +697,3 @@ export default function Ver8_1_3() {
     </div>
   );
 }
-

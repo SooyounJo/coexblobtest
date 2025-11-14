@@ -539,13 +539,24 @@ const MiniBubble = ({
 
   useEffect(() => {
     // completed/settling phase로 전환될 때 생성 시간 기록
-    if ((phase === 'completed' || phase === 'settling') && spawnTime === null) {
-      setSpawnTime(Date.now());
+    if (phase === 'completed' || phase === 'settling') {
+      if (spawnTime === null) {
+        setSpawnTime(Date.now());
+        // 초기 위치 설정
+        positionRef.current.set(...startPosition);
+      }
+      // 타겟 위치 업데이트 (phase 변경 시)
       targetPositionRef.current.set(...targetPosition);
       currentTargetRef.current.set(...targetPosition);
-      positionRef.current.set(...startPosition);
+    } else {
+      // 다른 phase로 전환되면 spawnTime 리셋
+      if (spawnTime !== null) {
+        setSpawnTime(null);
+        opacityRef.current = 0;
+        scaleRef.current = 0;
+      }
     }
-  }, [phase, targetPosition, startPosition, spawnTime]);
+  }, [phase, targetPosition, startPosition]);
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
@@ -561,33 +572,35 @@ const MiniBubble = ({
         if (elapsed >= delayTime) {
           const spawnProgress = Math.min((elapsed - delayTime) / 0.6, 1); // 0.6초에 걸쳐 나타남
           
-          // opacity: 0에서 0.85로 증가
+          // opacity: 0에서 0.85로 증가 (더 빠르게 나타나도록)
+          const targetOpacity = 0.85 * spawnProgress;
           opacityRef.current = THREE.MathUtils.lerp(
             opacityRef.current,
-            0.85 * spawnProgress,
-            0.18
+            targetOpacity,
+            0.25
           );
           
           // scale: 0에서 목표 크기로 증가
+          const targetScale = scale * spawnProgress;
           scaleRef.current = THREE.MathUtils.lerp(
             scaleRef.current,
-            scale * spawnProgress,
-            0.22
+            targetScale,
+            0.28
           );
           
           // 위치: 시작 위치에서 타겟 위치로 이동하면서 떠다님
           const moveProgress = Math.min((elapsed - delayTime) / 2.5, 1); // 2.5초에 걸쳐 이동
-          const lerpSpeed = 0.06 * (1 - moveProgress * 0.4); // 점점 느려지면서 이동
+          const lerpSpeed = 0.08 * (1 - moveProgress * 0.4); // 점점 느려지면서 이동
           positionRef.current.lerp(currentTargetRef.current, lerpSpeed);
           
-          // 떠다니는 애니메이션 (부유 효과) - 화면 하단에서 부드럽게 부유
-          const floatY = Math.sin(time * 0.5 + delay * 10) * 0.12; // 화면 하단에서 크게 벗어나지 않도록 감소
-          const floatX = Math.cos(time * 0.45 + delay * 8) * 0.14;
-          const floatZ = Math.sin(time * 0.5 + delay * 12) * 0.12;
+          // 떠다니는 애니메이션 (부유 효과) - 차분하게 부유 (일렁임 감소)
+          const floatY = Math.sin(time * 0.2 + delay * 10) * 0.05; // 속도와 진폭 대폭 감소
+          const floatX = Math.cos(time * 0.18 + delay * 8) * 0.04;
+          const floatZ = Math.sin(time * 0.22 + delay * 12) * 0.04;
           
-          // 회전 애니메이션 추가
-          const rotateY = time * 0.3 + delay * 5;
-          const rotateX = Math.sin(time * 0.4 + delay * 7) * 0.18;
+          // 회전 애니메이션 - 매우 느리게
+          const rotateY = time * 0.08 + delay * 5; // 회전 속도 대폭 감소
+          const rotateX = Math.sin(time * 0.12 + delay * 7) * 0.05; // 회전 진폭 대폭 감소
           
           if (meshRef.current) {
             const finalPos = new THREE.Vector3(
@@ -601,20 +614,28 @@ const MiniBubble = ({
             meshRef.current.rotation.y = rotateY;
             meshRef.current.rotation.x = rotateX;
             
-            // 호흡 애니메이션
-            const breatheFactor = 1 + Math.sin(time * 0.5 + delay * 6) * 0.12;
+            // 호흡 애니메이션 - 매우 차분하게
+            const breatheFactor = 1 + Math.sin(time * 0.25 + delay * 6) * 0.03; // 속도와 진폭 대폭 감소
             meshRef.current.scale.setScalar(scaleRef.current * breatheFactor);
           }
+        } else {
+          // 지연 시간 동안은 투명하게
+          opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, 0, 0.3);
+          scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, 0, 0.3);
         }
+      } else {
+        // spawnTime이 아직 설정되지 않았으면 초기화
+        opacityRef.current = 0;
+        scaleRef.current = 0;
       }
     } else {
       // 다른 phase에서는 보이지 않음
-      opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, 0, 0.25);
-      scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, 0, 0.25);
+      opacityRef.current = THREE.MathUtils.lerp(opacityRef.current, 0, 0.3);
+      scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, 0, 0.3);
     }
 
     if (material.uniforms.globalAlpha != null) {
-      material.uniforms.globalAlpha.value = opacityRef.current;
+      material.uniforms.globalAlpha.value = Math.max(0, Math.min(1, opacityRef.current));
     }
   });
 
@@ -646,8 +667,11 @@ const Scene = ({ boosted, phase, popActive }) => {
   const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
 
   // settling phase에서 completed로 전환될 때 블롭이 커지며 아래로 내려오는 순간 작은 블롭 생성
-  // 화면 하단 위치 계산
-  const screenBottomY = useMemo(() => -v.height / 2 - 0.6, [v.height]); // 화면 극하단 위치
+  // 화면 하단 위치 계산 - 카메라 z=6, fov=50일 때 화면 하단이 보이도록
+  const screenBottomY = useMemo(() => {
+    // viewport height는 약 5.2 정도이므로, 화면 하단을 약 -2.2 정도로 설정
+    return -v.height / 2 + 0.4; // 화면 하단 근처 (화면 안에 보이도록)
+  }, [v.height]);
   
   const miniBubblesConfig = useMemo(() => {
     // settling/completed phase가 아니면 빈 배열
@@ -668,16 +692,20 @@ const Scene = ({ boosted, phase, popActive }) => {
     const baseY = 0; // 그룹 내부 상대 y (그룹 자체가 화면 하단에 배치됨)
     const baseZ = 0; // 그룹 내부 상대 z
     
+    // 각 블롭마다 다른 높이 오프셋 (살짝씩 다른 높낮이)
+    const heightOffsets = [-0.25, 0.15, -0.08]; // 각 블롭의 기본 높이 차이
+    const targetHeightOffsets = [0.1, 0.35, 0.18]; // 타겟 위치의 높이 차이
+    
     for (let i = 0; i < count; i++) {
       // 시작 위치: 화면 하단 기준으로 가로로 퍼져서 배치
       const startX = horizontalOffsets[i] + (fixedSeeds[i] - 0.5) * 0.3; // 약간의 랜덤성
-      const startY = baseY + (fixedSeeds[i] - 0.5) * 0.2; // 약간의 높이 차이
-      const startZ = baseZ + (fixedSeeds[i] - 0.5) * 0.4; // 깊이 차이
+      const startY = baseY + heightOffsets[i] + (fixedSeeds[i] - 0.5) * 0.12; // 각 블롭마다 다른 높이
+      const startZ = baseZ + 0.5 + (fixedSeeds[i] - 0.5) * 0.3; // 앞쪽에 배치하여 잘 보이도록
       
-      // 타겟 위치: 화면 하단 근처에서 떠다니는 위치 (화면 하단에서 크게 벗어나지 않고 부유)
+      // 타겟 위치: 화면 하단 근처에서 떠다니는 위치 (각 블롭마다 다른 높이로 부유)
       const targetX = horizontalOffsets[i] + (fixedSeeds[i] - 0.5) * 0.5; // 더 넓게 퍼짐
-      const targetY = baseY + 0.15 + (fixedSeeds[i] - 0.5) * 0.25; // 화면 하단 근처에서 약간만 위로 (0.15만큼)
-      const targetZ = baseZ + (fixedSeeds[i] - 0.5) * 0.6; // 깊이 더 다양하게
+      const targetY = baseY + targetHeightOffsets[i] + (fixedSeeds[i] - 0.5) * 0.2; // 각 블롭마다 다른 높이
+      const targetZ = baseZ + 0.5 + (fixedSeeds[i] - 0.5) * 0.4; // 앞쪽에 유지
       
       configs.push({
         startPosition: [startX, startY, startZ],
@@ -722,11 +750,11 @@ const Scene = ({ boosted, phase, popActive }) => {
         />
       </group>
       {/* 미니 블롭들 - completed/settling phase에서만 생성되어 화면 하단에서 부유 */}
-      {(phase === 'completed' || phase === 'settling') && (
-        <group position={[0, screenBottomY, 1]} renderOrder={999}>
+      {(phase === 'completed' || phase === 'settling') && miniBubblesConfig.length > 0 && (
+        <group position={[0, screenBottomY, 0]} renderOrder={999}>
           {miniBubblesConfig.map((config, index) => (
             <MiniBubble
-              key={`mini-${phase}-${index}`}
+              key={`mini-${phase}-${index}-${config.startPosition[0]}-${config.startPosition[1]}`}
               startPosition={config.startPosition}
               targetPosition={config.targetPosition}
               phase={phase}
