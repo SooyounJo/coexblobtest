@@ -563,13 +563,21 @@ export default function Ver8_1() {
         <div className="glass-overlay glass-overlay--visible" aria-hidden={!popActive}>
           <div className="glass-modal">
             <div className="glass-content">
-              <div className="avatar placeholder" />
-              <h3>캐릭터 라이선싱 페어</h3>
-              <p>
-                다양한 캐릭터와 체험 부스를 온 가족과 함께
-                <br />즐겨보세요.
-              </p>
-              <button className="primary">코엑스 홈페이지 바로가기</button>
+              <div
+                className="photo"
+                role="img"
+                aria-label="딤섬과 음식이 놓인 테이블"
+              />
+              <div className="text">
+                <p>
+                  <span className="hl">딤딤섬</span> 에서는 홍콩 딤섬을 맛볼 수 있고,
+                </p>
+                <p>
+                  <span className="hl">무월식탁</span> 에서는 정갈하게 차려낸
+                  <br />한식을 즐기실 수 있답니다.
+                </p>
+                <p className="small">두 곳 모두 깔끔하고 모던한 분위기로 인기가 많아요.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -583,44 +591,63 @@ export default function Ver8_1() {
           background: radial-gradient(circle at 30% 20%, #fff6fb 0%, #fdeef5 38%, #fadce8 100%);
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+          /* Responsive tokens for exact rounding and horizontal margins */
+          --glass-radius: clamp(22px, 7.4vw, 28px);
+          --glass-side: clamp(12px, 4.8vw, 18px);
         }
         .container--bright {
           background: radial-gradient(circle at 30% 20%, #fff6fb 0%, #fdeef5 38%, #fadce8 100%);
         }
         .glass-overlay {
-          position: absolute;
+          position: fixed;
           inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: clamp(16px, 6vw, 48px);
+          /* Keep vertical space flexible, lock horizontal to match reference */
+          padding: clamp(16px, 8vh, 44px) var(--glass-side);
           pointer-events: none;
-          z-index: 5;
+          z-index: 50;
         }
         .glass-overlay--visible {
           pointer-events: auto;
         }
         .glass-modal {
-          width: min(360px, 82vw);
-          aspect-ratio: 142.41 / 190.74;
+          /* Fill available width minus overlay side paddings */
+          width: 100%;
+          max-width: 100%;
+          /* Slightly wider card to avoid overly tall feel */
+          aspect-ratio: 164 / 190;
           display: grid;
           place-items: center;
+          margin: 0 auto;
           pointer-events: none;
         }
         .glass-content {
           display: grid;
-          gap: clamp(18px, 3.6vw, 26px);
+          gap: clamp(14px, 3vw, 22px);
           padding: clamp(22px, 5.2vw, 30px);
-          border-radius: 28px;
-          background: rgba(255,255,255,0.025);
-          border: 1px solid rgba(255,255,255,0.4);
+          border-radius: var(--glass-radius);
+          /* Softer, more transparent glass: top 30% → bottom 70% white */
+          background: linear-gradient(
+            180deg,
+            rgba(255,255,255,0.00) 0%,
+            rgba(255,255,255,0.00) 14.285%,
+            rgba(255,255,255,0.10) 24%,
+            rgba(255,255,255,0.20) 66%,
+            rgba(255,255,255,0.28) 100%
+          );
+          border: 1px solid rgba(255,255,255,0.44);
           box-shadow:
-            0 28px 48px rgba(22, 42, 58, 0.24),
-            inset 0 1px 0 rgba(255,255,255,0.88),
-            inset 0 -10px 28px rgba(255,255,255,0.12);
-          backdrop-filter: blur(42px) saturate(2.35) contrast(1.08);
+            0 28px 48px rgba(22, 42, 58, 0.11),
+            inset 0 1px 0 rgba(255,255,255,0.64),
+            inset 0 -12px 36px rgba(255,255,255,0.05);
+          backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
+          -webkit-backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
+          /* Desaturate inner contents slightly for a washed, matte look */
+          filter: saturate(0.92);
           text-align: center;
-          color: #0f2420;
+          color: #1f2640;
           position: relative;
           overflow: hidden;
         }
@@ -629,37 +656,56 @@ export default function Ver8_1() {
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: linear-gradient(145deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0.0) 100%);
+          /* Glossy sheen, but toned down for more transparency */
+          background: linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 55%, rgba(255,255,255,0.0) 100%);
           mix-blend-mode: screen;
-          opacity: 0.48;
+          opacity: 0.14;
           pointer-events: none;
         }
         .glass-content::after {
           content: '';
           position: absolute;
-          inset: -30%;
+          inset: -28%;
           background:
-            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.24), transparent 60%),
-            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.18), transparent 70%),
-            rgba(255,255,255,0.018);
-          opacity: 0.16;
-          filter: blur(60px) saturate(1.4);
+            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.08), transparent 60%),
+            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.035), transparent 70%),
+            rgba(255,255,255,0.010);
+          opacity: 0.07;
+          filter: blur(50px) saturate(1.0);
           pointer-events: none;
         }
-        .avatar {
+        .photo {
           width: 100%;
-          border-radius: 16px;
-          overflow: hidden;
-          background: rgba(255,255,255,0.24);
-          display: grid;
-          place-items: center;
+          aspect-ratio: 4 / 3;
+          border-radius: calc(var(--glass-radius) - 12px);
+          background:
+            url('https://images.unsplash.com/photo-1604908177522-b4f0c19e6bd0?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
+            rgba(255,255,255,0.12);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.6);
+          margin-top: clamp(4px, 1.4vw, 8px);
         }
-        .placeholder {
-          aspect-ratio: 1 / 1;
-          border-radius: 16px;
-          border: 1px dashed rgba(255,255,255,0.35);
-          background: rgba(255,255,255,0.06);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.32);
+        .text {
+          display: grid;
+          gap: clamp(6px, 2vw, 10px);
+          color: #204a53;
+          font-weight: 700;
+          text-align: center;
+          letter-spacing: -0.01em;
+        }
+        .text p { margin: 0; line-height: 1.68; }
+        .text .small {
+          color: #2b5b64;
+          font-weight: 600;
+          opacity: 0.88;
+        }
+        .hl {
+          display: inline-block;
+          padding: 0.12em 0.6em;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.66);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.92);
+          color: #124f58;
         }
         .glass-content h3 {
           margin: 0;
@@ -670,16 +716,18 @@ export default function Ver8_1() {
           margin: 0;
           font-size: clamp(13px, 3.4vw, 15px);
           font-weight: 500;
-          opacity: 0.82;
+          opacity: 0.84;
           line-height: 1.6;
         }
         .primary {
           border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.42);
-          background: rgba(255,255,255,0.14);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
-          backdrop-filter: blur(28px) saturate(1.6);
-          color: #103330;
+          border: 1px solid rgba(255,255,255,0.58);
+          background: linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.46) 50%, rgba(255,255,255,0.34) 100%);
+          box-shadow:
+            0 8px 18px rgba(30, 76, 78, 0.12),
+            inset 0 1px 0 rgba(255,255,255,0.72);
+          backdrop-filter: blur(18px) saturate(1.0) brightness(1.00);
+          color: #2a2f42;
           font-weight: 700;
           font-size: clamp(12px, 3.2vw, 14px);
           padding: clamp(9px, 2.6vw, 12px) clamp(24px, 6.2vw, 32px);
@@ -688,8 +736,8 @@ export default function Ver8_1() {
         }
         .primary:hover {
           box-shadow:
-            0 24px 42px rgba(30, 76, 78, 0.32),
-            inset 0 1px 0 rgba(255,255,255,0.58);
+            0 24px 42px rgba(30, 76, 78, 0.20),
+            inset 0 1px 0 rgba(255,255,255,0.66);
           transform: translateY(-2px);
         }
         .primary:focus { outline: none; }
