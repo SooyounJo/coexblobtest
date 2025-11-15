@@ -650,10 +650,12 @@ export default function Ver8_1() {
           --side-left: calc(var(--glass-side) + var(--safe-l));
           --side-right: calc(var(--glass-side) + var(--safe-r));
           /* Slightly shrink main modal width compared to message bar */
-          --modal-shrink: clamp(6px, 1.8vw, 14px);
+          --modal-shrink: clamp(14px, 3.6vw, 28px);
           /* Small right shift for suggestions */
           --suggest-shift: clamp(6px, 1.6vw, 14px);
           --blob-tint: rgba(118, 212, 255, 0.12);
+          /* extra inset for main modal only (v2 can override) */
+          --modal-extra-inset: 0px;
         }
         /* enforce Pretendard Variable across the page */
         :global(html), :global(body), :global(input), :global(button), :global(textarea) {
@@ -704,9 +706,13 @@ export default function Ver8_1() {
         }
         .glass-modal {
           /* Hard-match message-bar horizontal margins */
-          width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
-          margin-left: calc(var(--side-left) + var(--modal-shrink));
-          margin-right: calc(var(--side-right) + var(--modal-shrink));
+          width: calc(
+            100% - var(--side-left) - var(--side-right)
+            - (var(--modal-shrink) * 2)
+            - (var(--modal-extra-inset) * 2)
+          );
+          margin-left: calc(var(--side-left) + var(--modal-shrink) + var(--modal-extra-inset));
+          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--modal-extra-inset));
           /* Slightly wider card to avoid overly tall feel */
           aspect-ratio: 164 / 190;
           display: grid;
