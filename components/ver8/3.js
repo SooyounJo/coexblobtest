@@ -637,7 +637,7 @@ export default function Ver8_1() {
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
           /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: clamp(32px, 10vw, 48px);
+          --glass-radius: 18px;
           --glass-side: clamp(16px, 5.2vw, 24px);
           --glass-inner: clamp(20px, 5vw, 28px);
           --ui-gray: #E6EBEF; /* cooler gray for message bar */
@@ -849,36 +849,21 @@ export default function Ver8_1() {
           position: relative;
           overflow: visible;
         }
-        /* highlight stroke flowing light effect */
-        .hl::after {
+        /* opacity-only glow using a soft overlay */
+        .hl::before {
           content: '';
           position: absolute;
-          inset: -1px; /* draw over the 1px stroke */
+          inset: -1px;
           border-radius: inherit;
-          padding: 1px; /* ring thickness ~ stroke width */
-          background:
-            conic-gradient(
-              from 0deg,
-              rgba(255,255,255,0.95) 0%,
-              rgba(255,255,255,0.30) 18%,
-              rgba(255,255,255,0.85) 36%,
-              rgba(255,255,255,0.30) 54%,
-              rgba(255,255,255,0.95) 72%,
-              rgba(255,255,255,1.00) 100%
-            );
-          -webkit-mask:
-            linear-gradient(#000 0 0) content-box,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-                  mask-composite: exclude;
+          background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.30) 100%);
           mix-blend-mode: screen;
-          opacity: 0.9;
-          animation: strokeFlow 2800ms linear infinite;
-          will-change: transform;
+          opacity: 0.18;
+          animation: hlOpacityGlow 2600ms ease-in-out infinite;
           pointer-events: none;
         }
-        @keyframes strokeFlow {
-          to { transform: rotate(360deg); }
+        @keyframes hlOpacityGlow {
+          0%, 100% { opacity: 0.16; }
+          50% { opacity: 0.32; }
         }
         @keyframes receiptPrint {
           0% { transform: scaleY(0.02); }
@@ -948,48 +933,50 @@ export default function Ver8_1() {
           max-width: 100%;
           padding: clamp(12px, 3.2vw, 14px) clamp(16px, 4vw, 18px);
           border-radius: 999px;
-          border: 0.5px solid rgba(255,255,255,0.34);
-          background: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.18) 100%);
+          border: 0.5px solid rgba(190,225,255,0.45);
+          background:
+            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.78),
             0 6px 16px rgba(40, 80, 96, 0.08);
           backdrop-filter: blur(14px) saturate(1.08);
-          color: rgba(56,65,85,0.54);
+          color: rgba(34,66,92,0.58);
           font-weight: 500;
           font-size: 14px;
           pointer-events: auto;
           white-space: nowrap;
         }
-        /* Make upper chips lighter (more transparent) progressively */
+        /* Make all chips a light blue, matching blob tint */
         .suggestions .chip:nth-child(1) {
-          border-color: rgba(255,255,255,0.30);
+          border-color: rgba(190,225,255,0.45);
           background:
-            radial-gradient(120% 90% at 15% 15%, rgba(118,212,255,0.28), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
+            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.62),
+            inset 0 1px 0 rgba(255,255,255,0.68),
             0 5px 12px rgba(40, 80, 96, 0.06);
-          color: rgba(56,65,85,0.58);
+          color: rgba(34,66,92,0.58);
         }
         .suggestions .chip:nth-child(2) {
-          border-color: rgba(255,255,255,0.28);
+          border-color: rgba(190,225,255,0.45);
           background:
-            radial-gradient(120% 80% at 80% 0%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.16) 100%);
+            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.70),
+            inset 0 1px 0 rgba(255,255,255,0.68),
             0 6px 14px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.56);
+          color: rgba(34,66,92,0.58);
         }
         .suggestions .chip:nth-child(3) {
-          border-color: rgba(255,255,255,0.26);
+          border-color: rgba(190,225,255,0.45);
           background:
-            radial-gradient(120% 80% at 85% 0%, rgba(118,212,255,0.12), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
+            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.72),
+            inset 0 1px 0 rgba(255,255,255,0.68),
             0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.54);
+          color: rgba(34,66,92,0.58);
         }
         .chip--medium {
           border-color: rgba(255,255,255,0.32);
