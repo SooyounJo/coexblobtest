@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+# Block pushes unless explicitly allowed.
+
+# Allow if user passes one-time config: git -c hooks.allowPush=true push
+if git config --bool hooks.allowPush | grep -qi true 2>/dev/null; then
+  exit 0
+fi
+
+# Allow via env var override
+if [ "$ALLOW_PUSH" = "1" ]; then
+  exit 0
+fi
+
+# Allow if last commit message contains [allow-push]
+last_msg="$(git log -1 --pretty=%B 2>/dev/null)"
+case "$last_msg" in
+  *"[allow-push]"*) exit 0 ;;
+esac
+
+printf "\n[Blocked] Push is disabled by repository policy.\n" >&2
+printf "To allow a one-time push, use one of:\n" >&2
+printf "  - git -c hooks.allowPush=true push\n" >&2
+printf "  - ALLOW_PUSH=1 git push\n" >&2
+printf "  - Include [allow-push] in the last commit message\n\n" >&2
+exit 1
+
+

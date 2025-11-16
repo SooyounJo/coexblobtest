@@ -650,10 +650,18 @@ export default function Ver8_1() {
           --side-left: calc(var(--glass-side) + var(--safe-l));
           --side-right: calc(var(--glass-side) + var(--safe-r));
           /* Slightly shrink main modal width compared to message bar */
-          --modal-shrink: clamp(6px, 1.8vw, 14px);
+          --modal-shrink: clamp(14px, 3.6vw, 28px);
+          /* unified frame width to avoid rounding mismatches across devices */
+          --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
+          /* compensate for asymmetric safe-areas to keep true center aligned */
+          --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
+          /* minimum breathing space between header and modal (responsive) */
+          --header-gap: clamp(5px, 1.6vh, 12px);
           /* Small right shift for suggestions */
           --suggest-shift: clamp(6px, 1.6vw, 14px);
           --blob-tint: rgba(118, 212, 255, 0.12);
+          /* extra inset for main modal only (v2 can override) */
+          --modal-extra-inset: 0px;
         }
         /* enforce Pretendard Variable across the page */
         :global(html), :global(body), :global(input), :global(button), :global(textarea) {
@@ -695,18 +703,19 @@ export default function Ver8_1() {
           align-items: center;
           justify-content: center;
           /* Keep vertical space flexible, lock horizontal to match reference */
-          padding: clamp(48px, 14vh, 96px) 0 clamp(32px, 12vh, 72px) 0;
+          padding: calc(clamp(48px, 14vh, 96px) + var(--header-gap)) 0 clamp(32px, 12vh, 72px) 0;
           pointer-events: none;
-          z-index: 50;
+          z-index: 90;
         }
         .glass-overlay--visible {
           pointer-events: auto;
         }
         .glass-modal {
           /* Hard-match message-bar horizontal margins */
-          width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
-          margin-left: calc(var(--side-left) + var(--modal-shrink));
-          margin-right: calc(var(--side-right) + var(--modal-shrink));
+          --modal-w: calc(var(--frame-width) - (var(--modal-extra-inset) * 2));
+          width: var(--modal-w);
+          margin-left: calc(var(--side-left) + var(--modal-shrink) + var(--modal-extra-inset) - var(--center-fix));
+          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--modal-extra-inset) + var(--center-fix));
           /* Slightly wider card to avoid overly tall feel */
           aspect-ratio: 164 / 190;
           display: grid;
@@ -736,9 +745,11 @@ export default function Ver8_1() {
           animation: drawLine 600ms ease-out forwards;
         }
         .glass-content {
+          /* scale inner layout proportionally to modal width (base ≈ 420px) */
+          --modal-scale: clamp(0.84, calc(var(--modal-w) / 420px), 1.20);
           display: grid;
-          gap: clamp(18px, 3.8vw, 26px);
-          padding: clamp(24px, 5.6vw, 34px) var(--glass-inner) clamp(24px, 5.6vw, 34px);
+          gap: calc(20px * var(--modal-scale));
+          padding: calc(26px * var(--modal-scale)) var(--glass-inner) calc(26px * var(--modal-scale));
           border-radius: var(--glass-radius);
           transform: scaleY(0.02);
           transform-origin: top center;
@@ -795,14 +806,14 @@ export default function Ver8_1() {
         .photo {
           width: 100%;
           aspect-ratio: 4 / 3;
-          border-radius: calc(var(--glass-radius) - 12px);
+          border-radius: calc(var(--glass-radius) - (12px * var(--modal-scale)));
           background:
             url('https://images.unsplash.com/photo-1604908177522-b4f0c19e6bd0?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
             rgba(255,255,255,0.10);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.48);
-          margin-top: clamp(6px, 1.8vw, 10px);
-          margin-bottom: clamp(16px, 3.6vw, 22px);
+          margin-top: calc(8px * var(--modal-scale));
+          margin-bottom: calc(20px * var(--modal-scale));
         }
         .text {
           display: grid;
@@ -812,7 +823,7 @@ export default function Ver8_1() {
           text-align: center;
           letter-spacing: -0.01em;
         }
-        .text p { margin: 0; line-height: 1.9; }
+        .text p { margin: 0; line-height: 2.02; }
         .text .small {
           color: #2b5b64;
           font-weight: 600;
@@ -830,11 +841,16 @@ export default function Ver8_1() {
         }
         .hl {
           display: inline-block;
-          padding: 0.12em 0.6em;
+          padding: 0.08em 0.68em;
           border-radius: 999px;
-          background: rgba(255,255,255,0.66);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
-          color: #124f58;
+          background: linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.72) 100%);
+          border: 1px solid rgba(255,255,255,1);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,1),
+            0 3px 10px rgba(16,24,40,0.12);
+          backdrop-filter: blur(12px) saturate(1.25);
+          -webkit-backdrop-filter: blur(12px) saturate(1.25);
+          color: #0f3a41;
         }
         @keyframes receiptPrint {
           0% { transform: scaleY(0.02); }
@@ -883,10 +899,10 @@ export default function Ver8_1() {
         /* Bottom suggestion chips (glass-like) */
         .suggestions {
           position: fixed;
-          left: calc(var(--side-left) + var(--modal-shrink));
-          right: calc(var(--side-right) + var(--modal-shrink));
+          left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
+          right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
           transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 22px);
+          bottom: calc(var(--mb-bottom) + var(--mb-h) + 18px);
           display: grid;
           gap: 12px;
           width: auto;
@@ -915,24 +931,36 @@ export default function Ver8_1() {
           pointer-events: auto;
           white-space: nowrap;
         }
-        /* Make upper chips lighter (more transparent) progressively */
+        /* Press chips slightly with blob-tint; upper chips are more "pressed" */
         .suggestions .chip:nth-child(1) {
-          border-color: rgba(255,255,255,0.22);
-          background: linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.12) 100%);
+          border-color: rgba(255,255,255,0.30);
+          background:
+            radial-gradient(120% 90% at 15% 15%, rgba(118,212,255,0.28), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.74),
-            0 5px 14px rgba(40, 80, 96, 0.06);
-          color: rgba(56,65,85,0.50);
+            inset 0 1px 0 rgba(255,255,255,0.62),
+            0 5px 12px rgba(40, 80, 96, 0.06);
+          color: rgba(56,65,85,0.58);
         }
         .suggestions .chip:nth-child(2) {
           border-color: rgba(255,255,255,0.28);
           background:
-            radial-gradient(120% 80% at 80% 0%, var(--blob-tint), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%);
+            radial-gradient(120% 80% at 80% 0%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.16) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.76),
+            inset 0 1px 0 rgba(255,255,255,0.70),
+            0 6px 14px rgba(40, 80, 96, 0.07);
+          color: rgba(56,65,85,0.56);
+        }
+        .suggestions .chip:nth-child(3) {
+          border-color: rgba(255,255,255,0.26);
+          background:
+            radial-gradient(120% 80% at 85% 0%, rgba(118,212,255,0.12), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.72),
             0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.50);
+          color: rgba(56,65,85,0.54);
         }
         .chip--medium {
           border-color: rgba(255,255,255,0.32);
@@ -945,10 +973,11 @@ export default function Ver8_1() {
         /* Message input bar */
         .message-bar {
           position: fixed;
-          left: calc(var(--side-left) + var(--modal-shrink));
-          right: calc(var(--side-right) + var(--modal-shrink));
+          width: var(--frame-width);
+          margin-left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
+          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
           transform: none;
-          bottom: var(--mb-bottom);
+          bottom: calc(var(--mb-bottom) - 4px);
           height: var(--mb-h);
           display: grid;
           grid-template-columns: auto 1fr auto;
