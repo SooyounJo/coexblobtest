@@ -7,7 +7,7 @@ export default function Ver8_2() {
       <Ver8_1 />
       <style jsx global>{`
         /* Use 1.js modal as-is; keep only v2's tweaks */
-        .container { --glass-radius: 24px; }
+        .container { --glass-radius: 30px; }
         /* Make the main modal noticeably more transparent in v2 */
         .glass-content {
           background: linear-gradient(
@@ -22,10 +22,10 @@ export default function Ver8_2() {
           backdrop-filter: blur(36px) saturate(0.88) brightness(1.02) contrast(0.92) !important;
           -webkit-backdrop-filter: blur(36px) saturate(0.88) brightness(1.02) contrast(0.92) !important;
           filter: saturate(0.90) !important;
-          border-radius: 24px !important;
+          border-radius: 30px !important;
         }
         /* Make highlight pill taller in v2 */
-        .hl { padding: 0.14em 0.72em !important; }
+        .hl { padding: 0.20em 0.72em !important; }
         /* Nudge inner contents slightly upward */
         .photo {
           margin-bottom: calc(16px * var(--modal-scale)) !important;
@@ -34,24 +34,24 @@ export default function Ver8_2() {
         .text { margin-top: -4px !important; }
         /* v2: top two suggestion chips are gray glassmorphism */
         .suggestions .chip:nth-child(1) {
-          background: linear-gradient(180deg, rgba(245,246,248,0.80) 0%, rgba(232,234,238,0.48) 100%) !important;
-          border-color: rgba(208,214,222,0.90) !important;
+          background: linear-gradient(180deg, rgba(224,228,232,0.58) 0%, rgba(206,210,216,0.28) 100%) !important;
+          border-color: rgba(255,255,255,0.86) !important;
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.66),
             0 4px 10px rgba(15,23,42,0.06) !important;
-          backdrop-filter: blur(14px) saturate(0.88) brightness(0.98) !important;
-          -webkit-backdrop-filter: blur(14px) saturate(0.88) brightness(0.98) !important;
-          color: rgba(58,62,72,0.72) !important;
+          backdrop-filter: blur(14px) saturate(0.94) brightness(1.01) !important;
+          -webkit-backdrop-filter: blur(14px) saturate(0.94) brightness(1.01) !important;
+          color: rgba(52,60,70,0.62) !important;
         }
         .suggestions .chip:nth-child(2) {
-          background: linear-gradient(180deg, rgba(244,246,249,0.72) 0%, rgba(230,234,240,0.40) 100%) !important;
-          border-color: rgba(210,216,224,0.80) !important;
+          background: linear-gradient(180deg, rgba(230,232,236,0.54) 0%, rgba(212,216,224,0.26) 100%) !important;
+          border-color: rgba(255,255,255,0.80) !important;
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.64),
             0 4px 10px rgba(15,23,42,0.06) !important;
-          backdrop-filter: blur(14px) saturate(0.90) brightness(0.99) !important;
-          -webkit-backdrop-filter: blur(14px) saturate(0.90) brightness(0.99) !important;
-          color: rgba(58,62,72,0.68) !important;
+          backdrop-filter: blur(14px) saturate(0.96) brightness(1.01) !important;
+          -webkit-backdrop-filter: blur(14px) saturate(0.96) brightness(1.01) !important;
+          color: rgba(52,60,70,0.60) !important;
         }
       `}</style>
     </>

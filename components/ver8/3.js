@@ -918,7 +918,7 @@ export default function Ver8_1() {
           transform: none;
           bottom: calc(var(--mb-bottom) + var(--mb-h) + 18px);
           display: grid;
-          gap: 12px;
+          gap: 10px;
           width: auto;
           z-index: 55; /* above modal, below message bar */
           pointer-events: none;
@@ -931,7 +931,7 @@ export default function Ver8_1() {
         .chip {
           justify-self: start;
           max-width: 100%;
-          padding: clamp(12px, 3.2vw, 14px) clamp(16px, 4vw, 18px);
+          padding: clamp(9px, 2.6vw, 12px) clamp(12px, 3.2vw, 16px);
           border-radius: 999px;
           border: 0.5px solid rgba(190,225,255,0.45);
           background:
@@ -943,7 +943,7 @@ export default function Ver8_1() {
           backdrop-filter: blur(14px) saturate(1.08);
           color: rgba(34,66,92,0.58);
           font-weight: 500;
-          font-size: 14px;
+          font-size: 12px;
           pointer-events: auto;
           white-space: nowrap;
         }

@@ -642,6 +642,7 @@ export default function Ver8_1() {
           --glass-inner: clamp(20px, 5vw, 28px);
           --ui-gray: #E6EBEF; /* cooler gray for message bar */
           --chip-offset: clamp(8px, 2vw, 14px);
+          --chip-gap: 12px; /* for animation math only; layout gap stays as-is */
           --mb-h: clamp(44px, 7.2vh, 52px);
           --mb-bottom: clamp(36px, 6vh, 56px);
           /* Safe-area aware margins (for iOS notch, etc.) */
@@ -902,9 +903,9 @@ export default function Ver8_1() {
           left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
           right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
           transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 18px);
+          bottom: calc(var(--mb-bottom) + var(--mb-h) + 10px);
           display: grid;
-          gap: 12px;
+          gap: 12px; /* keep original spacing */
           width: auto;
           z-index: 55; /* above modal, below message bar */
           pointer-events: none;
@@ -930,6 +931,15 @@ export default function Ver8_1() {
           font-size: 14px;
           pointer-events: auto;
           white-space: nowrap;
+          /* animate visually without altering layout sizing/gap */
+          animation: chipDrop 700ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+        }
+        .suggestions .chip:nth-child(2) { animation-delay: 720ms; }
+        .suggestions .chip:nth-child(3) { animation-delay: 1440ms; }
+        @keyframes chipDrop {
+          0%   { transform: translateY(-120%); opacity: 0; }
+          60%  { opacity: 1; }
+          100% { transform: translateY(0); opacity: 1; }
         }
         /* Press chips slightly with blob-tint; upper chips are more "pressed" */
         .suggestions .chip:nth-child(1) {
