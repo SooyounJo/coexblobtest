@@ -670,15 +670,15 @@ export default function Ver8_1() {
         }
         .top-heading {
           position: fixed;
-          top: clamp(64px, 12vh, 120px);
+          top: clamp(36px, 8vh, 80px);
           left: 50%;
           transform: translateX(-50%);
           width: calc(100% - var(--side-left) - var(--side-right));
           color: #2e3d46;
           font-weight: 700;
-          font-size: 18px;
+          font-size: 16px;
           text-align: center;
-          line-height: 1.5;
+          line-height: 1.4;
           z-index: 60;
           text-shadow: 0 12px 30px rgba(0,0,0,0.06);
         }
@@ -704,7 +704,7 @@ export default function Ver8_1() {
           align-items: center;
           justify-content: center;
           /* Keep vertical space flexible, lock horizontal to match reference */
-          padding: calc(clamp(48px, 14vh, 96px) + var(--header-gap)) 0 clamp(32px, 12vh, 72px) 0;
+          padding: calc(clamp(28px, 10vh, 64px) + var(--header-gap)) 0 clamp(24px, 10vh, 56px) 0;
           pointer-events: none;
           z-index: 90;
         }
