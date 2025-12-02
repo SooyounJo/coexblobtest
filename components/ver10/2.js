@@ -143,171 +143,6 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
   extensions: { derivatives: true },
 });
 
-const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 },
-    lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
-    ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
-    boost: { value: 0 },
-    globalAlpha: { value: 1 },
-    paletteMix: { value: 0 },
-    dir: { value: new THREE.Vector2(0, 1) },
-  },
-  vertexShader: `
-      uniform float time;
-      uniform float boost;
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      varying vec3 vWorldPos;
-      float hash(vec2 p){
-        p = fract(p*vec2(123.34, 345.45));
-        p += dot(p, p+34.345);
-        return fract(p.x*p.y);
-      }
-      float noise(vec2 p) {
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        float a = hash(i);
-        float b = hash(i+vec2(1.0,0.0));
-        float c = hash(i+vec2(0.0,1.0));
-        float d = hash(i+vec2(1.0,1.0));
-        vec2 u = f*f*(3.0-2.0*f);
-        return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
-      }
-      void main() {
-        vUv = uv;
-        vec3 pos = position;
-        vNormal = normalize(normalMatrix * normal);
-        vec4 worldPos = modelMatrix * vec4(pos, 1.0);
-        vWorldPos = worldPos.xyz;
-        gl_Position = projectionMatrix * viewMatrix * worldPos;
-      }
-    `,
-  fragmentShader: `
-      precision highp float;
-      uniform float time;
-      uniform float boost;
-      uniform vec3 lightDir;
-      uniform vec3 ringDir;
-      uniform float globalAlpha;
-      uniform float paletteMix;
-      uniform vec2 dir;
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
-      float n2(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0)); vec2 u=f*f*(3.0-2.0*f); return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);}      
-      float noise(vec2 p) { return sin(p.x) * cos(p.y) + sin(p.x*2.0)*cos(p.y*2.0)*0.5; }
-      float elasticWave(float x, float frequency, float amplitude){ float wave=sin(x*frequency)*amplitude; float decay=exp(-x*0.05); float bounce=sin(x*frequency*2.0)*amplitude*0.3; return (wave+bounce)*decay; }
-      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=0.0025; return smoothstep(w+aa,0.0+aa,d);}      
-      vec3 bandWeights(float f){ float width=0.24; float y=bumpMove(0.18,width,f); float p=bumpMove(0.52,width,f); float u=bumpMove(0.86,width,f); return vec3(y,p,u);}      
-      float softBlur(float x, float strength) { return exp(-x * x / strength); }
-      void main(){
-        vec3 N=normalize(vNormal);
-        vec3 L=normalize(lightDir);
-        vec2 p = vUv - 0.5;
-        float r=length(p);
-        float topness=clamp(dot(N,normalize(ringDir))*0.5+0.5,0.0,1.0);
-        vec3 emerald=vec3(0.04, 0.92, 0.50);
-        vec3 neonMint=vec3(0.30, 0.98, 0.75);
-        vec3 vividGreen=vec3(0.00, 0.90, 0.35);
-        vec3 centerYellow=vec3(1.00, 0.95, 0.45);
-        vec3 lavender=vec3(0.90, 0.62, 1.00);
-        vec3 deepLavender=vec3(0.60, 0.45, 0.95);
-        vec3 base=mix(neonMint,emerald,clamp(0.4+0.6*topness,0.0,1.0));
-        base=mix(base,vividGreen,smoothstep(0.1,0.36,topness));
-        base=mix(base,lavender,smoothstep(0.0,0.55,1.0-topness));
-        base=mix(base,deepLavender,smoothstep(-0.36,0.2,p.y)*0.42);
-        float loopSec=12.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
-        float rippleIntensity = 1.0 + boost * 1.25;
-        float drop1=sin(time*2.0)*0.3+0.5; float drop2=sin(time*1.7+1.5)*0.25+0.5; float drop3=sin(time*2.3+3.1)*0.2+0.5;
-        float dist1=length(vUv-vec2(0.2,drop1)); float dist2=length(vUv-vec2(-0.3,drop2)); float dist3=length(vUv-vec2(0.4,drop3));
-        float ripple1=sin(dist1*18.0-time*8.4)*exp(-dist1*7.5)*0.08*rippleIntensity;
-        float ripple2=sin(dist2*16.0-time*7.2)*exp(-dist2*5.8)*0.06*rippleIntensity;
-        float ripple3=sin(dist3*19.0-time*9.6)*exp(-dist3*6.4)*0.075*rippleIntensity;
-        float totalRipple=ripple1+ripple2+ripple3;
-        float elastic1=elasticWave(topness*2.0+time*0.38,3.0,0.12);
-        float elastic2=elasticWave(topness*3.0+time*0.62,2.2,0.07);
-        float totalElastic=(elastic1+elastic2) * (1.0 + boost * 0.85);
-        float blurAmount=0.012;
-        float f1=topness*1.8+phase+totalRipple+totalElastic;
-        float f2=topness*1.8+phase+blurAmount+totalRipple*0.82+totalElastic*0.64;
-        float f3=topness*1.8+phase+(blurAmount*1.5)+totalRipple*0.6+totalElastic*0.4;
-        float perturb=0.02*n2(vUv*1.5+time*0.05);
-        vec3 w1=bandWeights(f1+perturb);
-        vec3 w2=bandWeights(f2+perturb*0.8);
-        vec3 w3=bandWeights(f3+perturb*0.6);
-        float wobble1=0.996+0.0025*n2(vUv*2.2+time*0.05+1.0);
-        float wobble2=0.996+0.0025*n2(vUv*2.2+time*0.05+2.4);
-        float wobble3=0.996+0.0025*n2(vUv*2.2+time*0.05+3.7);
-        w1*=wobble1; w2*=wobble2; w3*=wobble3;
-        vec3 cY=vec3(0.10,0.92,0.58);
-        vec3 cP=vec3(0.22,0.96,0.70);
-        vec3 cU=vec3(0.66,0.50,0.98);
-        w1*=vec3(0.22,1.10,1.05);
-        w2*=vec3(0.22,1.10,1.05);
-        w3*=vec3(0.22,1.10,1.05);
-        vec3 flowColor1=cY*w1.x + cP*w1.y + cU*w1.z;
-        vec3 flowColor2=cY*w2.x + cP*w2.y + cU*w2.z;
-        vec3 flowColor3=cY*w3.x + cP*w3.y + cU*w3.z;
-        vec3 flowColor=(0.5*flowColor1 + 0.35*flowColor2 + 0.15*flowColor3);
-        float mask1=clamp(w1.x+w1.y+w1.z,0.0,1.0);
-        float mask2=clamp(w2.x+w2.y+w2.z,0.0,1.0);
-        float mask3=clamp(w3.x+w3.y+w3.z,0.0,1.0);
-        float flowMaskAvg=clamp((0.5*mask1 + 0.35*mask2 + 0.15*mask3),0.0,1.0);
-        vec3 lit=base;
-        lit=mix(lit,flowColor,flowMaskAvg*mix(0.32,0.58,boost));
-        vec3 rippleColor=vec3(0.10,0.98,0.52)*totalRipple*mix(0.18,0.36,boost);
-        vec3 elasticColor=vec3(0.58,0.60,0.96)*totalElastic*mix(0.14,0.28,boost);
-        lit+=rippleColor+elasticColor;
-        float centerGlow = smoothstep(0.34, 0.08, r);
-        lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
-        vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
-        lit = mix(lit, paletteTint, paletteMix * 0.28);
-
-        // Directional outward wave: propagate along +dir from center
-        vec2 nd = normalize(dir);
-        float s = dot(p, nd);
-        float t = dot(p, vec2(-nd.y, nd.x));
-        // forward only (s>0), narrow lateral band, traveling phase
-        float forwardMask = smoothstep(0.0, 0.18, s);
-        float lateral = exp(-pow(t * 3.2, 2.0));
-        float dirPhase = s * mix(14.0, 22.0, boost) - time * mix(8.0, 14.0, boost);
-        float dirWave = sin(dirPhase);
-        float dirOut = forwardMask * lateral * dirWave * mix(0.18, 0.42, boost);
-        // tint the front slightly brighter/mintier as it moves outward
-        lit += vec3(0.10, 0.16, 0.22) * dirOut;
-
-        vec3 V=vec3(0.0,0.0,1.0);
-        float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
-        vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
-        float softHalo=smoothstep(0.38, 0.14, r)*0.12;
-        vec3 glow=rimGlow + vec3(0.68,0.54,0.96)*softHalo;
-        lit+=glow;
-        lit+=vec3(0.08,0.94,0.60)*(1.0-topness)*mix(0.12,0.22,boost);
-        vec3 gray=vec3(dot(lit,vec3(0.299,0.587,0.114)));
-        float loopPhase = 0.5 + 0.5 * sin(6.28318530718 * time / 9.5);
-        float sat = 1.0 + 0.6 * loopPhase;
-        lit = mix(gray, lit, sat);
-        float brightness = 1.0 + 0.1 * loopPhase;
-        lit *= brightness;
-        float contrast = 1.0 + 0.2 * loopPhase;
-        lit = (lit - 0.5) * contrast + 0.5;
-        lit=pow(lit,vec3(0.92));
-        lit*=1.04;
-        lit=mix(lit,vec3(1.0),0.015);
-        lit=clamp(lit,0.0,1.0);
-        float edgeBase = smoothstep(0.54, 0.30, r);
-        float edgeGlow = softBlur(r - 0.36, 0.18);
-        float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
-        float alpha = 0.8 * edgeFeather + fres * 0.16 + abs(dirOut) * 0.05;
-        alpha = clamp(alpha, 0.0, 0.95);
-        gl_FragColor=vec4(lit,alpha * globalAlpha);
-      }
-    `,
-  transparent: true,
-  extensions: { derivatives: true },
-});
-
 const AgenticBubble = ({
   position,
   targetPosition = position,
@@ -315,7 +150,6 @@ const AgenticBubble = ({
   variant = 'default',
   opacityTarget = 1,
   scaleTarget = 1,
-  initialScale = null,
   positionLerp = 0.08,
   opacityLerp = 0.08,
   scaleLerp = 0.16,
@@ -324,41 +158,19 @@ const AgenticBubble = ({
   breathe = false,
 }) => {
   const material = useMemo(() => {
-    return variant === 'water' ? createWaterShaderMaterial() : createDefaultShaderMaterial();
-  }, [variant]);
+    return createDefaultShaderMaterial();
+  }, []);
 
   const meshRef = useRef(null);
   const boostValueRef = useRef(0);
   const opacityRef = useRef(opacityTarget);
-  const scaleRef = useRef(initialScale !== null ? initialScale : scaleTarget);
+  const scaleRef = useRef(scaleTarget);
   const paletteRef = useRef(paletteTarget);
   const targetPositionRef = useRef(new THREE.Vector3(...position));
-  const prevScaleTargetRef = useRef(scaleTarget);
-  const prevPositionRef = useRef([...position]);
 
   useEffect(() => {
     targetPositionRef.current.set(...targetPosition);
   }, [targetPosition[0], targetPosition[1], targetPosition[2]]);
-  
-  // initialScale이 변경되면 scaleRef를 즉시 시작값으로 설정하여 위치와 크기가 동시에 시작되도록
-  useEffect(() => {
-    if (initialScale !== null) {
-      scaleRef.current = initialScale;
-    }
-  }, [initialScale]);
-  
-  // position이 크게 변경되면 mesh의 위치를 즉시 업데이트하여 위치와 크기가 동시에 시작되도록
-  useEffect(() => {
-    const positionChanged = 
-      Math.abs(position[0] - prevPositionRef.current[0]) > 0.1 ||
-      Math.abs(position[1] - prevPositionRef.current[1]) > 0.1 ||
-      Math.abs(position[2] - prevPositionRef.current[2]) > 0.1;
-    
-    if (positionChanged && meshRef.current) {
-      meshRef.current.position.set(...position);
-      prevPositionRef.current = [...position];
-    }
-  }, [position[0], position[1], position[2]]);
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
@@ -401,71 +213,12 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ boosted, phase, popActive, isActiveTransitioning }) => {
+const Scene = () => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
 
   const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
-  
-  // 위치와 크기가 동시에 변경되도록 설정
-  // 액티브: 하단에서 시작 → 상단으로 올라가면서 커짐 (위치와 크기 동시 변경)
-  // 원상복구: 상단에서 시작 → 하단으로 내려오면서 작아짐 (위치와 크기 동시 변경)
-  const bottomStartPosition = useMemo(() => {
-    if (isActiveTransitioning === 'active') {
-      // 액티브 시작: 하단 위치에서 시작 (작은 크기)
-      return [0, -(spacing + 0.3), 0];
-    } else if (isActiveTransitioning === 'restore') {
-      // 원상복구 시작: 상단 위치에서 시작 (큰 크기) - 내려오면서 작아짐
-      return [0, spacing + 0.3, 0];
-    }
-    // 기본: phase에 따라 설정
-    return phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0];
-  }, [phase, spacing, isActiveTransitioning]);
-  
-  const bottomTargetPosition = useMemo(() => {
-    if (isActiveTransitioning === 'active') {
-      // 액티브: 하단 → 상단으로 올라가면서 커짐
-      return [0, spacing + 0.3, 0];
-    } else if (isActiveTransitioning === 'restore') {
-      // 원상복구: 상단 → 하단으로 내려오면서 작아짐
-      return [0, -(spacing + 0.3), 0];
-    }
-    // 기본: completed phase일 때만 상단 위치
-    return phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0];
-  }, [phase, spacing, isActiveTransitioning]);
-
-  const topOpacityTarget = phase === 'idle' ? 1 : 1;
-  const topScaleTarget = phase === 'idle' ? 1.18 : 1;
-  
-  // 위치와 크기가 동시에 변경되도록 크기 설정
-  const bottomScaleStart = useMemo(() => {
-    if (isActiveTransitioning === 'active') {
-      // 액티브 시작: 작은 크기에서 시작 (1)
-      return 1;
-    } else if (isActiveTransitioning === 'restore') {
-      // 원상복구 시작: 큰 크기에서 시작 (2.0) - 내려오면서 작아짐
-      return 2.0;
-    }
-    return phase === 'completed' ? 1.04 : 1;
-  }, [phase, isActiveTransitioning]);
-  
-  const bottomScaleTarget = useMemo(() => {
-    if (isActiveTransitioning === 'active') {
-      // 액티브: 올라가면서 동시에 커짐 (1 → 2.0)
-      return 2.0;
-    } else if (isActiveTransitioning === 'restore') {
-      // 원상복구: 내려오면서 동시에 작아짐 (2.0 → 1)
-      return 1;
-    }
-    return popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
-  }, [popActive, phase, isActiveTransitioning]);
-  
-  // 위치와 크기가 완전히 동시에 한번에 변경되도록 동일한 lerp 값 설정
-  const simultaneousLerp = isActiveTransitioning ? 0.85 : null;
-  const bottomPositionLerp = simultaneousLerp !== null ? simultaneousLerp : (phase === 'completed' ? 0.12 : 0.04);
-  const bottomScaleLerp = simultaneousLerp !== null ? simultaneousLerp : (popActive ? 0.2 : 0.14);
-  const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
 
   return (
     <group position={[0, 0.8, 1]} renderOrder={1000}>
@@ -474,34 +227,19 @@ const Scene = ({ boosted, phase, popActive, isActiveTransitioning }) => {
         position={topPosition}
         targetPosition={topPosition}
         variant="default"
-        opacityTarget={topOpacityTarget}
-        scaleTarget={topScaleTarget}
+        opacityTarget={1}
+        scaleTarget={1.18}
         positionLerp={0.08}
         opacityLerp={0.06}
         scaleLerp={0.18}
         paletteTarget={0}
         paletteLerp={0.1}
       />
-      <AgenticBubble
-        boosted={boosted}
-        position={bottomStartPosition}
-        targetPosition={bottomTargetPosition}
-        variant={bottomVariant}
-        opacityTarget={(phase === 'completed' || isActiveTransitioning) ? 1 : 0}
-        scaleTarget={bottomScaleTarget}
-        initialScale={isActiveTransitioning ? bottomScaleStart : null}
-        positionLerp={bottomPositionLerp}
-        opacityLerp={isActiveTransitioning ? 0.85 : 0.1}
-        scaleLerp={bottomScaleLerp}
-        paletteTarget={popActive ? 0.7 : 0.2}
-        paletteLerp={0.16}
-        breathe={popActive}
-      />
     </group>
   );
 };
 
-const CanvasBackground = ({ boosted, phase, popActive, isActiveTransitioning }) => {
+const CanvasBackground = () => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -510,7 +248,7 @@ const CanvasBackground = ({ boosted, phase, popActive, isActiveTransitioning }) 
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} isActiveTransitioning={isActiveTransitioning} />
+        <Scene />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -528,194 +266,199 @@ const CanvasBackground = ({ boosted, phase, popActive, isActiveTransitioning }) 
   );
 };
 
-export default function Ver8_1() {
-  // 초기 상태를 'completed'로 설정하여 블롭이 이미 커진 상태에서 시작
-  const [boosted, setBoosted] = useState(false);
-  const [phase, setPhase] = useState('idle');
-  const [popActive, setPopActive] = useState(false); // 타이핑 이후 표시
-  const [isActiveTransitioning, setIsActiveTransitioning] = useState(null); // 'active' | 'restore' | null
-  const boostTimeoutRef = useRef(null);
-  const settleTimeoutRef = useRef(null);
-  const popTimeoutRef = useRef(null);
-  const pulseTimeoutRef = useRef(null);
-  const calmTimeoutRef = useRef(null);
-  const bottomUiTimeoutRef = useRef(null);
-  const activeTransitionTimeoutRef = useRef(null);
-  const restoreTimeoutRef = useRef(null);
-
-  // 타이핑 효과
-  const headingText = '친구와 함께라면 분위기 좋은 식당이 좋겠죠';
-  const [typedText, setTypedText] = useState('');
+// 이미지가 먼저 나타나고, 그 다음 텍스트가 타이핑되는 모달
+function ModalWithImageFirst({ fullText, speed = 28 }) {
+  const [imageVisible, setImageVisible] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [progress, setProgress] = useState(0);
   const [typingDone, setTypingDone] = useState(false);
+  const cardRef = useRef(null);
+  const innerRef = useRef(null);
+  const [cardHeight, setCardHeight] = useState(56);
 
-  // 초기 마운트 시 popActive가 활성화되도록 설정
+  // 이미지 먼저 표시
   useEffect(() => {
-    let idx = 0;
-    const speed = 60; // ms per char
-    const typer = setInterval(() => {
-      idx += 1;
-      setTypedText(headingText.slice(0, idx));
-      if (idx >= headingText.length) {
-        clearInterval(typer);
-        setTypingDone(true);
-        // 타이핑 완료 후 모달 표시
-        setTimeout(() => setPhase('completed'), 300);
-      }
-    }, speed);
-    return () => clearInterval(typer);
+    const timer = setTimeout(() => {
+      setImageVisible(true);
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
+  // 이미지가 나타난 후 텍스트 타이핑 시작
   useEffect(() => {
-    if (popTimeoutRef.current) {
-      clearTimeout(popTimeoutRef.current);
-    }
-    if (activeTransitionTimeoutRef.current) {
-      clearTimeout(activeTransitionTimeoutRef.current);
-    }
-    if (restoreTimeoutRef.current) {
-      clearTimeout(restoreTimeoutRef.current);
-    }
+    if (!imageVisible) return;
+
+    let i = 0;
+    const delayBeforeTyping = 400; // 이미지가 나타난 후 400ms 후 타이핑 시작
     
-    if (phase === 'completed') {
-      // 새로운 인터랙션 순서:
-      // 1. 먼저 액티브 상태로 위치와 크기를 한번에 변경
-      setIsActiveTransitioning('active');
-      
-      // 2. 액티브 상태 유지 후 원상복구
-      activeTransitionTimeoutRef.current = setTimeout(() => {
-        setIsActiveTransitioning('restore');
-        
-        // 3. 원상복구 후 popActive 활성화 (모달 표시)
-        restoreTimeoutRef.current = setTimeout(() => {
-          setIsActiveTransitioning(null);
-          setPopActive(true);
-        }, 400); // 원상복구 애니메이션 시간
-      }, 800); // 액티브 상태 유지 시간
-    } else {
-      setPopActive(false);
-      setIsActiveTransitioning(null);
-    }
-    
-    return () => {
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
-      if (activeTransitionTimeoutRef.current) {
-        clearTimeout(activeTransitionTimeoutRef.current);
-      }
-      if (restoreTimeoutRef.current) {
-        clearTimeout(restoreTimeoutRef.current);
-      }
-    };
-  }, [phase]);
+    const startTypingTimer = setTimeout(() => {
+      const timer = setInterval(() => {
+        i += 1;
+        const next = fullText.slice(0, i);
+        setTyped(next);
+        const p = Math.min(1, next.length / fullText.length);
+        setProgress(p);
+        if (i >= fullText.length) {
+          clearInterval(timer);
+          setTypingDone(true);
+        }
+      }, speed);
+      return () => clearInterval(timer);
+    }, delayBeforeTyping);
 
-  // 모달 이후 하단 UI 페이드인
-  const [bottomVisible, setBottomVisible] = useState(false);
-  useEffect(() => {
-    if (bottomUiTimeoutRef.current) clearTimeout(bottomUiTimeoutRef.current);
-    if (popActive) {
-      bottomUiTimeoutRef.current = setTimeout(() => setBottomVisible(true), 900);
-    } else {
-      setBottomVisible(false);
-    }
-    return () => {
-      if (bottomUiTimeoutRef.current) clearTimeout(bottomUiTimeoutRef.current);
-    };
-  }, [popActive]);
+    return () => clearTimeout(startTypingTimer);
+  }, [imageVisible, fullText, speed]);
 
+  // 카드 높이 동적 계산
   useEffect(() => {
-    if (pulseTimeoutRef.current) {
-      clearTimeout(pulseTimeoutRef.current);
-    }
-    if (calmTimeoutRef.current) {
-      clearTimeout(calmTimeoutRef.current);
-    }
-    if (popActive) {
-      pulseTimeoutRef.current = setTimeout(() => {
-        setBoosted(true);
-        calmTimeoutRef.current = setTimeout(() => {
-          setBoosted(false);
-        }, 2800);
-      }, 1000);
-    } else {
-      setBoosted(false);
-    }
-    return () => {
-      if (pulseTimeoutRef.current) {
-        clearTimeout(pulseTimeoutRef.current);
-      }
-      if (calmTimeoutRef.current) {
-        clearTimeout(calmTimeoutRef.current);
-      }
+    const update = () => {
+      if (!innerRef.current) return;
+      const h = innerRef.current.scrollHeight;
+      setCardHeight(Math.max(56, h));
     };
-  }, [popActive]);
-
-  useEffect(() => {
-    return () => {
-      if (boostTimeoutRef.current) {
-        clearTimeout(boostTimeoutRef.current);
-      }
-      if (settleTimeoutRef.current) {
-        clearTimeout(settleTimeoutRef.current);
-      }
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
-      if (pulseTimeoutRef.current) {
-        clearTimeout(pulseTimeoutRef.current);
-      }
-      if (calmTimeoutRef.current) {
-        clearTimeout(calmTimeoutRef.current);
-      }
-      if (activeTransitionTimeoutRef.current) {
-        clearTimeout(activeTransitionTimeoutRef.current);
-      }
-      if (restoreTimeoutRef.current) {
-        clearTimeout(restoreTimeoutRef.current);
-      }
-    };
-  }, []);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [typed, progress, imageVisible]);
 
   return (
-    <div className={`container container--bright ${bottomVisible ? 'container--bottom-visible' : ''}`}>
-      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} isActiveTransitioning={isActiveTransitioning} />
-      <div className="top-heading" aria-hidden={false}>
-        {typedText}
-      </div>
-      {popActive && (
-        <div className="glass-overlay glass-overlay--visible" aria-hidden={!popActive}>
-          <div className="glass-modal">
-            <div className="glass-content">
-              <div
-                className="photo"
-                role="img"
-                aria-label="딤섬과 음식이 놓인 테이블"
-              />
-              <div className="text">
-                <p>
-                  <span className="hl">딤딤섬</span> 에서는 홍콩 딤섬을 맛볼 수 있고,
-                </p>
-                <p>
-                  <span className="hl">무월식탁</span> 에서는 정갈하게 차려낸
-                  <br />한식을 즐기실 수 있답니다
-                </p>
-                <p className="small">두 곳 모두 깔끔하고 모던한 분위기로 인기가 많아요</p>
+    <>
+      <div className="modal2-wrapper">
+        <div className="modal2-wrap">
+          <div className="modal2-card" ref={cardRef} style={{ height: cardHeight }}>
+            <div className="modal2-inner" ref={innerRef}>
+              {/* 이미지가 먼저 상단에 나타남 */}
+              <div className={`modal2-photo ${imageVisible ? 'is-in' : ''}`} aria-hidden />
+              
+              {/* 그 다음 텍스트가 타이핑됨 */}
+              <div className="modal2-text">
+                {typed.split('\n').map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))}
               </div>
             </div>
           </div>
         </div>
-      )}
-      <div className={`suggestions ${bottomVisible ? 'suggestions--visible' : ''}`} aria-hidden={!bottomVisible}>
-        <div className="chip chip--strong">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-        <div className="chip chip--medium">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-        <div className="chip chip--light">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-      </div>
-      <div className={`message-bar ${bottomVisible ? 'message-bar--visible' : ''}`} role="form" aria-label="메시지 입력" aria-hidden={!bottomVisible}>
-        <button type="button" className="msg-btn add" aria-label="추가">＋</button>
-        <input className="msg-input" type="text" placeholder="메시지 보내기..." />
-        <button type="button" className="msg-btn voice" aria-label="음성">🎤</button>
       </div>
       <style jsx>{`
+        /* Pretendard Variable 폰트 로드 (public 폴더) */
+        @font-face {
+          font-family: 'Pretendard Variable';
+          src: url('/PretendardVariable.woff2') format('woff2');
+          font-weight: 100 900;
+          font-style: normal;
+          font-display: swap;
+        }
+        /* 모달에 필요한 CSS 변수 정의 */
+        .modal2-wrapper {
+          --glass-radius: clamp(28px, 8vw, 36px);
+          --glass-side: clamp(16px, 5.2vw, 24px);
+          --glass-inner: clamp(20px, 5vw, 28px);
+          --safe-l: env(safe-area-inset-left, 0px);
+          --safe-r: env(safe-area-inset-right, 0px);
+          --side-left: calc(var(--glass-side) + var(--safe-l));
+          --side-right: calc(var(--glass-side) + var(--safe-r));
+          --modal-shrink: clamp(14px, 3.6vw, 28px);
+          --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
+          --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
+          --header-gap: clamp(5px, 1.6vh, 12px);
+        }
+        .modal2-wrap {
+          position: fixed;
+          inset: 0;
+          display: grid;
+          place-items: start center;
+          padding-top: calc(clamp(28px, 10vh, 64px) + var(--header-gap));
+          pointer-events: none;
+          z-index: 90;
+        }
+        .modal2-card {
+          --w: calc(var(--frame-width));
+          width: var(--w);
+          border-radius: calc(var(--glass-radius) + 12px);
+          background: linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.70) 100%);
+          border: 0.5px solid rgba(255,255,255,0.20);
+          box-shadow:
+            0 28px 48px rgba(22, 42, 58, 0.10),
+            inset 0 0.5px 0 rgba(255,255,255,0.18);
+          backdrop-filter: blur(38px) saturate(0.95);
+          -webkit-backdrop-filter: blur(38px) saturate(0.95);
+          overflow: hidden;
+          display: grid;
+          grid-template-rows: auto 1fr;
+          align-items: start;
+          pointer-events: auto;
+          transition: height 140ms ease;
+        }
+        .modal2-inner {
+          width: 100%;
+          box-sizing: border-box;
+          padding: var(--glass-inner);
+          display: grid;
+          gap: var(--glass-inner);
+        }
+        /* 이미지가 상단에 먼저 나타남 */
+        .modal2-photo {
+          width: 100%;
+          height: 0;
+          opacity: 0;
+          transform: translateY(12px) scale(0.98);
+          filter: blur(2.5px);
+          border-radius: calc(var(--glass-radius) + 12px - 16px);
+          background:
+            url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
+            rgba(255,255,255,0.10);
+          transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 600ms cubic-bezier(0.16, 1, 0.3, 1),
+                      filter 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                      height 400ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal2-photo.is-in {
+          height: auto;
+          aspect-ratio: 4 / 3;
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0px);
+        }
+        /* 텍스트는 이미지 아래에 타이핑됨 */
+        .modal2-text {
+          padding: 0;
+          color: #1f2640;
+          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+          font-weight: 700;
+          text-align: center;
+          word-break: keep-all;
+        }
+        .modal2-text p {
+          margin: 6px 0;
+          line-height: 1.72;
+          text-indent: 1em;
+        }
+      `}</style>
+    </>
+  );
+}
+
+export default function Ver10_2() {
+  const fullText =
+    "친구와 함께라면 ‘무월식탁’이라는 한식당이나 ‘피에프창’이라는 아시안 비스트로가 좋을 거예요\n둘 다 분위기도 좋고 음식 종류도 다양해서 선택지가 많습니다";
+
+  return (
+    <div className="container container--bright">
+      <CanvasBackground />
+
+      {/* 이미지가 먼저 나타나고, 그 다음 텍스트가 타이핑되는 모달 */}
+      <ModalWithImageFirst fullText={fullText} speed={28} />
+
+      <style jsx>{`
+        /* Pretendard Variable 폰트 로드 (public 폴더) */
+        @font-face {
+          font-family: 'Pretendard Variable';
+          src: url('/PretendardVariable.woff2') format('woff2');
+          font-weight: 100 900;
+          font-style: normal;
+          font-display: swap;
+        }
         .container {
           position: relative;
           width: 100%;
@@ -724,409 +467,15 @@ export default function Ver8_1() {
           background: radial-gradient(circle at 30% 20%, #fffdfc 0%, #fff6fa 38%, #fdeff3 100%);
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: clamp(28px, 8vw, 36px);
-          --glass-side: clamp(16px, 5.2vw, 24px);
-          --glass-inner: clamp(20px, 5vw, 28px);
-          --ui-gray: #E6EBEF; /* cooler gray for message bar */
-          --chip-offset: clamp(8px, 2vw, 14px);
-          --chip-gap: 12px; /* for animation math only; layout gap stays as-is */
-          --mb-h: clamp(44px, 7.2vh, 52px);
-          --mb-bottom: clamp(36px, 6vh, 56px);
-          /* Safe-area aware margins (for iOS notch, etc.) */
-          --safe-l: env(safe-area-inset-left, 0px);
-          --safe-r: env(safe-area-inset-right, 0px);
-          --side-left: calc(var(--glass-side) + var(--safe-l));
-          --side-right: calc(var(--glass-side) + var(--safe-r));
-          /* Slightly shrink main modal width compared to message bar */
-          --modal-shrink: clamp(14px, 3.6vw, 28px);
-          /* unified frame width to avoid rounding mismatches across devices */
-          --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
-          /* compensate for asymmetric safe-areas to keep true center aligned */
-          --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
-          /* minimum breathing space between header and modal (responsive) */
-          --header-gap: clamp(5px, 1.6vh, 12px);
-          /* Small right shift for suggestions */
-          --suggest-shift: clamp(6px, 1.6vw, 14px);
-          --blob-tint: rgba(118, 212, 255, 0.12);
-          /* extra inset for main modal only (v2 can override) */
-          --modal-extra-inset: 0px;
         }
         /* enforce Pretendard Variable across the page */
         :global(html), :global(body), :global(input), :global(button), :global(textarea) {
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
         }
-        .top-heading {
-          position: fixed;
-          top: clamp(36px, 8vh, 80px);
-          left: 50%;
-          transform: translateX(-50%);
-          width: calc(100% - var(--side-left) - var(--side-right));
-          color: #2e3d46;
-          font-weight: 700;
-          font-size: 16px;
-          text-align: center;
-          line-height: 1.4;
-          z-index: 60;
-          text-shadow: 0 12px 30px rgba(0,0,0,0.06);
-        }
         .container--bright {
           background: radial-gradient(circle at 30% 20%, #fffeff 0%, #fff7fb 38%, #fbeff5 100%);
         }
-        /* When bottom UI is visible, soften the modal slightly */
-        .container--bottom-visible .glass-content {
-          background: linear-gradient(
-            180deg,
-            rgba(255,255,255,0.00) 0%,
-            rgba(255,255,255,0.00) 16.666%,
-            rgba(255,255,255,0.08) 30%,
-            rgba(255,255,255,0.30) 66%,
-            rgba(255,255,255,0.70) 100%
-          );
-          border-color: rgba(255,255,255,0.16);
-        }
-        .glass-overlay {
-          position: fixed;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          /* Keep vertical space flexible, lock horizontal to match reference */
-          padding: calc(clamp(28px, 10vh, 64px) + var(--header-gap)) 0 clamp(24px, 10vh, 56px) 0;
-          pointer-events: none;
-          z-index: 90;
-        }
-        .glass-overlay--visible {
-          pointer-events: auto;
-        }
-        .glass-modal {
-          /* Hard-match message-bar horizontal margins */
-          --modal-w: calc(var(--frame-width) - (var(--modal-extra-inset) * 2));
-          width: var(--modal-w);
-          margin-left: calc(var(--side-left) + var(--modal-shrink) + var(--modal-extra-inset) - var(--center-fix));
-          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--modal-extra-inset) + var(--center-fix));
-          /* Slightly wider card to avoid overly tall feel */
-          aspect-ratio: 164 / 190;
-          display: grid;
-          place-items: center;
-          transform: translateY(-10vh);
-          pointer-events: none;
-          position: relative;
-          z-index: 1;
-        }
-        .glass-modal, .glass-content { box-sizing: border-box; }
-        /* Top scanline that draws once on mount */
-        .glass-modal::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: rgba(255,255,255,0.75);
-          box-shadow: 0 0 8px rgba(255,255,255,0.38);
-          opacity: 0;
-          transform-origin: left center;
-          transform: scaleX(0);
-          pointer-events: none;
-        }
-        .glass-overlay--visible .glass-modal::before {
-          animation: drawLine 600ms ease-out forwards;
-        }
-        .glass-content {
-          /* scale inner layout proportionally to modal width (base ≈ 420px) */
-          --modal-scale: clamp(0.84, calc(var(--modal-w) / 420px), 1.20);
-          display: grid;
-          gap: calc(20px * var(--modal-scale));
-          padding: calc(26px * var(--modal-scale)) var(--glass-inner) calc(26px * var(--modal-scale));
-          border-radius: var(--glass-radius);
-          transform: scaleY(0.02);
-          transform-origin: top center;
-          will-change: transform;
-          /* Softer, more transparent glass: top 30% → bottom 70% white */
-          background: linear-gradient(
-            180deg,
-            rgba(255,255,255,0.00) 0%,
-            rgba(255,255,255,0.00) 16.666%,
-            rgba(255,255,255,0.12) 30%,
-            rgba(255,255,255,0.38) 66%,
-            rgba(255,255,255,0.70) 100%
-          );
-          border: 0.5px solid rgba(255,255,255,0.20);
-          box-shadow:
-            0 28px 48px rgba(22, 42, 58, 0.10),
-            inset 0 0.5px 0 rgba(255,255,255,0.18),
-            inset 0 -12px 36px rgba(255,255,255,0.05);
-          backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
-          -webkit-backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
-          /* Desaturate inner contents slightly for a washed, matte look */
-          filter: saturate(0.92);
-          text-align: center;
-          color: #1f2640;
-          position: relative;
-          overflow: hidden;
-        }
-        .glass-overlay--visible .glass-content {
-          animation: receiptPrint 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .glass-content::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          /* Glossy sheen, but toned down for more transparency */
-          background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 55%, rgba(255,255,255,0.0) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.06;
-          pointer-events: none;
-        }
-        .glass-content::after {
-          content: '';
-          position: absolute;
-          inset: -28%;
-          background:
-            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.08), transparent 60%),
-            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.035), transparent 70%),
-            rgba(255,255,255,0.010);
-          opacity: 0.07;
-          filter: blur(50px) saturate(1.0);
-          pointer-events: none;
-        }
-        .photo {
-          width: 100%;
-          aspect-ratio: 4 / 3;
-          border-radius: calc(var(--glass-radius) - (12px * var(--modal-scale)));
-          background:
-            url('https://images.unsplash.com/photo-1604908177522-b4f0c19e6bd0?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
-            rgba(255,255,255,0.10);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.48);
-          margin-top: calc(8px * var(--modal-scale));
-          margin-bottom: calc(20px * var(--modal-scale));
-        }
-        .text {
-          display: grid;
-          gap: clamp(12px, 3vw, 16px);
-          color: #204a53;
-          font-weight: 700;
-          text-align: center;
-          letter-spacing: -0.01em;
-        }
-        .text p { margin: 0; line-height: 2.02; }
-        .text .small {
-          color: #2b5b64;
-          font-weight: 600;
-          opacity: 0.88;
-          /* appear as if it's on a new paragraph with indent */
-          margin-top: clamp(18px, 4.2vw, 26px);
-          text-align: left;
-          text-indent: 1.2em;
-          max-width: none;
-          width: 100%;
-          white-space: nowrap;
-          word-break: keep-all;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .hl {
-          display: inline-block;
-          padding: 0.08em 0.68em;
-          border-radius: 999px;
-          background: linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.72) 100%);
-          border: 1px solid rgba(255,255,255,1);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,1),
-            0 3px 10px rgba(16,24,40,0.12);
-          backdrop-filter: blur(12px) saturate(1.25);
-          -webkit-backdrop-filter: blur(12px) saturate(1.25);
-          color: #0f3a41;
-        }
-        @keyframes receiptPrint {
-          0% { transform: scaleY(0.02); }
-          70% { transform: scaleY(1.04); }
-          100% { transform: scaleY(1); }
-        }
-        @keyframes drawLine {
-          0%   { opacity: 0; transform: scaleX(0); }
-          20%  { opacity: 1; }
-          100% { opacity: 0; transform: scaleX(1); }
-        }
-        .glass-content h3 {
-          margin: 0;
-          font-size: clamp(18px, 4.6vw, 22px);
-          font-weight: 800;
-        }
-        .glass-content p {
-          margin: 0;
-          font-size: 15px;
-          font-weight: 500;
-          opacity: 0.84;
-          line-height: 1.6;
-        }
-        .primary {
-          border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.58);
-          background: linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.46) 50%, rgba(255,255,255,0.34) 100%);
-          box-shadow:
-            0 8px 18px rgba(30, 76, 78, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.72);
-          backdrop-filter: blur(18px) saturate(1.0) brightness(1.00);
-          color: #2a2f42;
-          font-weight: 700;
-          font-size: clamp(12px, 3.2vw, 14px);
-          padding: clamp(9px, 2.6vw, 12px) clamp(24px, 6.2vw, 32px);
-          cursor: pointer;
-          transition: box-shadow 180ms ease, transform 180ms ease;
-        }
-        .primary:hover {
-          box-shadow:
-            0 24px 42px rgba(30, 76, 78, 0.20),
-            inset 0 1px 0 rgba(255,255,255,0.66);
-          transform: translateY(-2px);
-        }
-        .primary:focus { outline: none; }
-        /* Bottom suggestion chips (glass-like) */
-        .suggestions {
-          position: fixed;
-          left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
-          right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
-          transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 10px);
-          display: grid;
-          gap: 12px; /* keep original spacing */
-          width: auto;
-          z-index: 55; /* above modal, below message bar */
-          pointer-events: none;
-          justify-items: start;
-          opacity: 0;
-          transform: translate(var(--suggest-shift), 10px);
-          transition: opacity 520ms ease, transform 520ms ease;
-        }
-        .suggestions--visible { opacity: 1; transform: translate(var(--suggest-shift), 0); pointer-events: auto; }
-        .chip {
-          justify-self: start;
-          max-width: 100%;
-          padding: clamp(12px, 3.2vw, 14px) clamp(16px, 4vw, 18px);
-          border-radius: 999px;
-          border: 0.5px solid rgba(255,255,255,0.34);
-          background: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.18) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.78),
-            0 6px 16px rgba(40, 80, 96, 0.08);
-          backdrop-filter: blur(14px) saturate(1.08);
-          color: rgba(56,65,85,0.54);
-          font-weight: 500;
-          font-size: 14px;
-          pointer-events: auto;
-          white-space: nowrap;
-          /* animate visually without altering layout sizing/gap */
-          animation: chipDrop 700ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
-        }
-        .suggestions .chip:nth-child(2) { animation-delay: 720ms; }
-        .suggestions .chip:nth-child(3) { animation-delay: 1440ms; }
-        @keyframes chipDrop {
-          0%   { transform: translateY(-120%); opacity: 0; }
-          60%  { opacity: 1; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        /* Press chips slightly with blob-tint; upper chips are more "pressed" */
-        .suggestions .chip:nth-child(1) {
-          border-color: rgba(255,255,255,0.30);
-          background:
-            radial-gradient(120% 90% at 15% 15%, rgba(118,212,255,0.28), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.62),
-            0 5px 12px rgba(40, 80, 96, 0.06);
-          color: rgba(56,65,85,0.58);
-        }
-        .suggestions .chip:nth-child(2) {
-          border-color: rgba(255,255,255,0.28);
-          background:
-            radial-gradient(120% 80% at 80% 0%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.16) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.70),
-            0 6px 14px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.56);
-        }
-        .suggestions .chip:nth-child(3) {
-          border-color: rgba(255,255,255,0.26);
-          background:
-            radial-gradient(120% 80% at 85% 0%, rgba(118,212,255,0.12), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.72),
-            0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.54);
-        }
-        .chip--medium {
-          border-color: rgba(255,255,255,0.32);
-          background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.18) 100%);
-        }
-        .chip--light {
-          border-color: rgba(255,255,255,0.28);
-          background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.14) 100%);
-        }
-        /* Message input bar */
-        .message-bar {
-          position: fixed;
-          width: var(--frame-width);
-          margin-left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
-          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
-          transform: none;
-          bottom: calc(var(--mb-bottom) - 4px);
-          height: var(--mb-h);
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 10px;
-          padding: 0 12px;
-          border-radius: 999px;
-          border: none;
-          background: var(--ui-gray);
-          box-shadow: none;
-          backdrop-filter: none;
-          z-index: 60;
-          opacity: 0;
-          transform: translateY(10px);
-          transition: opacity 520ms ease, transform 520ms ease;
-          box-sizing: border-box;
-        }
-        .message-bar--visible { opacity: 1; transform: translateY(0); }
-        .msg-input {
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          color: #4b4f5c;
-          font-weight: 600;
-          outline: none;
-        }
-        .msg-input::placeholder {
-          color: rgba(60, 60, 72, 0.55);
-          font-weight: 500;
-        }
-        .msg-btn {
-          border: none;
-          background: transparent;
-          color: #586076;
-          font-size: 18px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          transition: transform 160ms ease, background 160ms ease;
-        }
-        .msg-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(0,0,0,0.04);
-        }
-        .msg-btn:focus { outline: none; }
       `}</style>
     </div>
   );
 }
-
-

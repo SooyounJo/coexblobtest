@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { ModalLogic } from './modal-logic';
 
 const Canvas = dynamic(() => import('@react-three/fiber').then((mod) => mod.Canvas), {
   ssr: false,
@@ -479,78 +480,26 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
 export default function Ver9_2() {
   // 배경 블롭은 유지
   const [boosted] = useState(false);
-  // 2.js 전용 모달 로직: 타이핑 진행도에 따라 카드 높이 확장
+  // 모달 로직: modal-logic.js로 분리됨
   const fullText =
     "친구와 함께라면 ‘무월식탁’이라는 한식당이나 ‘피에프창’이라는 아시안 비스트로가 좋을 거예요\n둘 다 분위기도 좋고 음식 종류도 다양해서 선택지가 많습니다";
-  const [typed, setTyped] = useState("");
-  const [progress, setProgress] = useState(0); // 0~1, 전체 진행도
-  const [typingDone, setTypingDone] = useState(false);
-  const cardRef = useRef(null);
-  const innerRef = useRef(null);
-  const [cardHeight, setCardHeight] = useState(56); // 실제 렌더 높이(px), 내용 기반
-
-  useEffect(() => {
-    let i = 0;
-    const speed = 28; // ms/char
-    const timer = setInterval(() => {
-      i += 1;
-      const next = fullText.slice(0, i);
-      setTyped(next);
-      const p = Math.min(1, next.length / fullText.length);
-      setProgress(p);
-      if (i >= fullText.length) {
-        clearInterval(timer);
-        setTypingDone(true);
-      }
-    }, speed);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 내용 기반으로 카드 높이 산출 (최소 높이 보장, 자동 확장)
-  useEffect(() => {
-    const MIN_H = 56;
-    const update = () => {
-      if (!innerRef.current) return;
-      const h = innerRef.current.scrollHeight;
-      setCardHeight(Math.max(MIN_H, h));
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, [typed, progress]);
 
   return (
     <div className="container container--bright">
       <CanvasBackground boosted={false} phase="completed" popActive={true} />
-      <div className="brand-top">Sori</div>
 
-      {/* 전용 모달 */}
-      <div className="modal2-wrap">
-        <div className="modal2-card" ref={cardRef} style={{ height: cardHeight }}>
-          <div className="modal2-inner" ref={innerRef}>
-            <div className="modal2-text">
-            {typed.split('\n').map((line, idx) => (
-              <p key={idx}>{line}</p>
-            ))}
-            </div>
-            <div className={`modal2-photo ${typingDone ? 'is-in' : ''}`} aria-hidden />
-          </div>
-        </div>
-      </div>
-
-      {/* 하단 제안/메시지 바는 유지 */}
-      <div className="suggestions suggestions--visible no-anim" aria-hidden={false}>
-        <div className="chip chip--strong">조용히 작업할 수 있는 카페를 찾고 있어</div>
-        <div className="chip chip--medium">친구와 함께 먹기 좋은 식당을 추천해줘</div>
-        <div className="chip chip--light">즐길 거리가 많은 핫플레이스를 알려줘</div>
-      </div>
-      <div className="message-bar message-bar--visible" role="form" aria-label="메시지 입력">
-        <button type="button" className="msg-btn add" aria-label="추가">＋</button>
-        <input className="msg-input" type="text" placeholder="메시지 보내기..." />
-        <button type="button" className="msg-btn voice" aria-label="음성">🎤</button>
-      </div>
+      {/* 모달 로직: modal-logic.js로 분리 */}
+      <ModalLogic fullText={fullText} speed={28} />
 
       <style jsx>{`
+        /* Pretendard Variable 폰트 로드 (public 폴더) */
+        @font-face {
+          font-family: 'Pretendard Variable';
+          src: url('/PretendardVariable.woff2') format('woff2');
+          font-weight: 100 900;
+          font-style: normal;
+          font-display: swap;
+        }
         .container {
           position: relative;
           width: 100%;
@@ -563,11 +512,6 @@ export default function Ver9_2() {
           --glass-radius: clamp(28px, 8vw, 36px);
           --glass-side: clamp(16px, 5.2vw, 24px);
           --glass-inner: clamp(20px, 5vw, 28px);
-          --ui-gray: #E6EBEF; /* cooler gray for message bar */
-          --chip-offset: clamp(8px, 2vw, 14px);
-          --chip-gap: 12px; /* for animation math only; layout gap stays as-is */
-          --mb-h: clamp(44px, 7.2vh, 52px);
-          --mb-bottom: clamp(36px, 6vh, 56px);
           /* Safe-area aware margins (for iOS notch, etc.) */
           --safe-l: env(safe-area-inset-left, 0px);
           --safe-r: env(safe-area-inset-right, 0px);
@@ -581,8 +525,6 @@ export default function Ver9_2() {
           --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
           /* minimum breathing space between header and modal (responsive) */
           --header-gap: clamp(5px, 1.6vh, 12px);
-          /* Small right shift for suggestions */
-          --suggest-shift: clamp(6px, 1.6vw, 14px);
           --blob-tint: rgba(118, 212, 255, 0.12);
           /* extra inset for main modal only (v2 can override) */
           --modal-extra-inset: 0px;
@@ -591,85 +533,11 @@ export default function Ver9_2() {
         :global(html), :global(body), :global(input), :global(button), :global(textarea) {
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
         }
-        .brand-top {
-          position: fixed;
-          top: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          color: #7f5bff;
-          font-weight: 700;
-          font-size: 13px;
-          z-index: 80;
-        }
         .container--bright {
           background: radial-gradient(circle at 30% 20%, #fffeff 0%, #fff7fb 38%, #fbeff5 100%);
         }
 
-        /* ============ v9/2 전용 모달 ============ */
-        .modal2-wrap {
-          position: fixed;
-          inset: 0;
-          display: grid;
-          place-items: start center;
-          padding-top: calc(clamp(28px, 10vh, 64px) + var(--header-gap));
-          pointer-events: none;
-          z-index: 90;
-        }
-        .modal2-card {
-          --w: calc(var(--frame-width));
-          width: var(--w);
-          border-radius: calc(var(--glass-radius) + 12px);
-          background: linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.70) 100%);
-          border: 0.5px solid rgba(255,255,255,0.20);
-          box-shadow:
-            0 28px 48px rgba(22, 42, 58, 0.10),
-            inset 0 0.5px 0 rgba(255,255,255,0.18);
-          backdrop-filter: blur(38px) saturate(0.95);
-          -webkit-backdrop-filter: blur(38px) saturate(0.95);
-          overflow: hidden;
-          display: grid;
-          grid-template-rows: auto 1fr;
-          align-items: start;
-          pointer-events: auto;
-          transition: height 140ms ease;
-        }
-        .modal2-inner {
-          width: 100%;
-          box-sizing: border-box;
-          padding: var(--glass-inner);
-          display: grid;
-          gap: var(--glass-inner);
-        }
-        .modal2-text {
-          padding: 0;
-          color: #1f2640;
-          font-weight: 700;
-          text-align: center;
-          word-break: keep-all;
-        }
-        .modal2-text p { margin: 6px 0; line-height: 1.72; text-indent: 1em; }
-        .modal2-photo {
-          margin: 0 var(--glass-inner) 0;
-          border-radius: calc(var(--glass-radius) + 12px - 16px);
-          background:
-            url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
-            rgba(255,255,255,0.10);
-          height: 0; /* 사진 등장 전 공간 차지하지 않음 */
-          opacity: 0;
-          transform: translateY(12px) scale(0.98);
-          transition: opacity 240ms ease, transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .modal2-photo.is-in {
-          height: auto;
-          aspect-ratio: 4 / 3;
-          margin: 0;
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-
-        /* 하단 예시칩은 타이핑 중에도 정지 */
-        .no-anim { transform: none !important; transition: none !important; }
-        .no-anim .chip { animation: none !important; }
+        /* 모달 스타일은 modal-logic.js에 포함됨 */
 
         @keyframes receiptPrint {
           0% { transform: scaleY(0.02); }
@@ -715,145 +583,6 @@ export default function Ver9_2() {
           transform: translateY(-2px);
         }
         .primary:focus { outline: none; }
-        /* Bottom suggestion chips (glass-like) */
-        .suggestions {
-          position: fixed;
-          left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
-          right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
-          transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 10px);
-          display: grid;
-          gap: 12px; /* keep original spacing */
-          width: auto;
-          z-index: 55; /* above modal, below message bar */
-          pointer-events: none;
-          justify-items: start;
-          opacity: 0;
-          transform: translate(var(--suggest-shift), 10px);
-          transition: opacity 520ms ease, transform 520ms ease;
-        }
-        .suggestions--visible { opacity: 1; transform: translate(var(--suggest-shift), 0); pointer-events: auto; }
-        .chip {
-          justify-self: start;
-          max-width: 100%;
-          padding: clamp(12px, 3.2vw, 14px) clamp(16px, 4vw, 18px);
-          border-radius: 999px;
-          border: 0.5px solid rgba(255,255,255,0.34);
-          background: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.18) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.78),
-            0 6px 16px rgba(40, 80, 96, 0.08);
-          backdrop-filter: blur(14px) saturate(1.08);
-          color: rgba(56,65,85,0.54);
-          font-weight: 500;
-          font-size: 14px;
-          pointer-events: auto;
-          white-space: nowrap;
-          /* animate visually without altering layout sizing/gap */
-          animation: chipDrop 700ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
-        }
-        .suggestions .chip:nth-child(2) { animation-delay: 720ms; }
-        .suggestions .chip:nth-child(3) { animation-delay: 1440ms; }
-        @keyframes chipDrop {
-          0%   { transform: translateY(-120%); opacity: 0; }
-          60%  { opacity: 1; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        /* Press chips slightly with blob-tint; upper chips are more "pressed" */
-        .suggestions .chip:nth-child(1) {
-          border-color: rgba(255,255,255,0.30);
-          background:
-            radial-gradient(120% 90% at 15% 15%, rgba(118,212,255,0.28), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.62),
-            0 5px 12px rgba(40, 80, 96, 0.06);
-          color: rgba(56,65,85,0.58);
-        }
-        .suggestions .chip:nth-child(2) {
-          border-color: rgba(255,255,255,0.28);
-          background:
-            radial-gradient(120% 80% at 80% 0%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.16) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.70),
-            0 6px 14px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.56);
-        }
-        .suggestions .chip:nth-child(3) {
-          border-color: rgba(255,255,255,0.26);
-          background:
-            radial-gradient(120% 80% at 85% 0%, rgba(118,212,255,0.12), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.72),
-            0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(56,65,85,0.54);
-        }
-        .chip--medium {
-          border-color: rgba(255,255,255,0.32);
-          background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.18) 100%);
-        }
-        .chip--light {
-          border-color: rgba(255,255,255,0.28);
-          background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.14) 100%);
-        }
-        /* Message input bar */
-        .message-bar {
-          position: fixed;
-          width: var(--frame-width);
-          margin-left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
-          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
-          transform: none;
-          bottom: calc(var(--mb-bottom) - 4px);
-          height: var(--mb-h);
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 10px;
-          padding: 0 12px;
-          border-radius: 999px;
-          border: none;
-          background: var(--ui-gray);
-          box-shadow: none;
-          backdrop-filter: none;
-          z-index: 60;
-          opacity: 0;
-          transform: translateY(10px);
-          transition: opacity 520ms ease, transform 520ms ease;
-          box-sizing: border-box;
-        }
-        .message-bar--visible { opacity: 1; transform: translateY(0); }
-        .msg-input {
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          color: #4b4f5c;
-          font-weight: 600;
-          outline: none;
-        }
-        .msg-input::placeholder {
-          color: rgba(60, 60, 72, 0.55);
-          font-weight: 500;
-        }
-        .msg-btn {
-          border: none;
-          background: transparent;
-          color: #586076;
-          font-size: 18px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          transition: transform 160ms ease, background 160ms ease;
-        }
-        .msg-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(0,0,0,0.04);
-        }
-        .msg-btn:focus { outline: none; }
       `}</style>
     </div>
   );
