@@ -151,6 +151,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
     boost: { value: 0 },
     globalAlpha: { value: 1 },
     paletteMix: { value: 0 },
+    dir: { value: new THREE.Vector2(0, 1) },
   },
   vertexShader: `
       uniform float time;
@@ -173,39 +174,9 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         vec2 u = f*f*(3.0-2.0*f);
         return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
       }
-      float waterDropEffect(vec3 pos, float time) {
-        float drop1 = sin(time * 2.0) * 0.3 + 0.5;
-        float drop2 = sin(time * 1.7 + 1.5) * 0.25 + 0.5;
-        float drop3 = sin(time * 2.3 + 3.1) * 0.2 + 0.5;
-        float dist1 = length(pos.xy - vec2(0.2, drop1));
-        float dist2 = length(pos.xy - vec2(-0.3, drop2));
-        float dist3 = length(pos.xy - vec2(0.4, drop3));
-        float ripple1 = sin(dist1 * 20.0 - time * 15.0) * exp(-dist1 * 8.0) * 0.02;
-        float ripple2 = sin(dist2 * 18.0 - time * 12.0) * exp(-dist2 * 6.0) * 0.015;
-        float ripple3 = sin(dist3 * 22.0 - time * 18.0) * exp(-dist3 * 7.0) * 0.018;
-        float shake1 = sin(time * 8.0) * exp(-dist1 * 5.0) * 0.01;
-        float shake2 = sin(time * 6.0 + 1.0) * exp(-dist2 * 4.0) * 0.008;
-        float shake3 = sin(time * 10.0 + 2.0) * exp(-dist3 * 6.0) * 0.012;
-        float intensity = 1.0 + boost * 1.35;
-        return (ripple1 + ripple2 + ripple3 + shake1 + shake2 + shake3) * intensity;
-      }
-      float waterSurfaceDeform(vec3 pos, float time) {
-        float wave1 = sin(pos.x * 3.0 + time * 2.0) * cos(pos.y * 2.5 + time * 1.5) * 0.015;
-        float wave2 = sin(pos.x * 5.0 + time * 3.0) * cos(pos.y * 4.0 + time * 2.5) * 0.008;
-        float wave3 = sin(pos.x * 7.0 + time * 4.0) * cos(pos.y * 6.0 + time * 3.5) * 0.005;
-        float noise1 = noise(pos.xy * 2.0 + time * 0.5) * 0.01;
-        float noise2 = noise(pos.yz * 1.5 + time * 0.7) * 0.008;
-        float noise3 = noise(pos.zx * 2.5 + time * 0.9) * 0.006;
-        float surfaceIntensity = 1.0 + boost * 1.1;
-        return (wave1 + wave2 + wave3 + noise1 + noise2 + noise3) * surfaceIntensity;
-      }
       void main() {
         vUv = uv;
         vec3 pos = position;
-        float dropEffect = waterDropEffect(pos, time);
-        pos += normal * dropEffect;
-        float surfaceDeform = waterSurfaceDeform(pos, time);
-        pos += normal * surfaceDeform;
         vNormal = normalize(normalMatrix * normal);
         vec4 worldPos = modelMatrix * vec4(pos, 1.0);
         vWorldPos = worldPos.xyz;
@@ -220,6 +191,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       uniform vec3 ringDir;
       uniform float globalAlpha;
       uniform float paletteMix;
+      uniform vec2 dir;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -291,6 +263,20 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
         vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
         lit = mix(lit, paletteTint, paletteMix * 0.28);
+
+        // Directional outward wave: propagate along +dir from center
+        vec2 nd = normalize(dir);
+        float s = dot(p, nd);
+        float t = dot(p, vec2(-nd.y, nd.x));
+        // forward only (s>0), narrow lateral band, traveling phase
+        float forwardMask = smoothstep(0.0, 0.18, s);
+        float lateral = exp(-pow(t * 3.2, 2.0));
+        float dirPhase = s * mix(14.0, 22.0, boost) - time * mix(8.0, 14.0, boost);
+        float dirWave = sin(dirPhase);
+        float dirOut = forwardMask * lateral * dirWave * mix(0.18, 0.42, boost);
+        // tint the front slightly brighter/mintier as it moves outward
+        lit += vec3(0.10, 0.16, 0.22) * dirOut;
+
         vec3 V=vec3(0.0,0.0,1.0);
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
         vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
@@ -313,7 +299,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         float edgeBase = smoothstep(0.54, 0.30, r);
         float edgeGlow = softBlur(r - 0.36, 0.18);
         float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
-        float alpha = 0.8 * edgeFeather + fres * 0.16;
+        float alpha = 0.8 * edgeFeather + fres * 0.16 + abs(dirOut) * 0.05;
         alpha = clamp(alpha, 0.0, 0.95);
         gl_FragColor=vec4(lit,alpha * globalAlpha);
       }
@@ -329,6 +315,7 @@ const AgenticBubble = ({
   variant = 'default',
   opacityTarget = 1,
   scaleTarget = 1,
+  initialScale = null,
   positionLerp = 0.08,
   opacityLerp = 0.08,
   scaleLerp = 0.16,
@@ -343,13 +330,35 @@ const AgenticBubble = ({
   const meshRef = useRef(null);
   const boostValueRef = useRef(0);
   const opacityRef = useRef(opacityTarget);
-  const scaleRef = useRef(scaleTarget);
+  const scaleRef = useRef(initialScale !== null ? initialScale : scaleTarget);
   const paletteRef = useRef(paletteTarget);
   const targetPositionRef = useRef(new THREE.Vector3(...position));
+  const prevScaleTargetRef = useRef(scaleTarget);
+  const prevPositionRef = useRef([...position]);
 
   useEffect(() => {
     targetPositionRef.current.set(...targetPosition);
   }, [targetPosition[0], targetPosition[1], targetPosition[2]]);
+  
+  // initialScale이 변경되면 scaleRef를 즉시 시작값으로 설정하여 위치와 크기가 동시에 시작되도록
+  useEffect(() => {
+    if (initialScale !== null) {
+      scaleRef.current = initialScale;
+    }
+  }, [initialScale]);
+  
+  // position이 크게 변경되면 mesh의 위치를 즉시 업데이트하여 위치와 크기가 동시에 시작되도록
+  useEffect(() => {
+    const positionChanged = 
+      Math.abs(position[0] - prevPositionRef.current[0]) > 0.1 ||
+      Math.abs(position[1] - prevPositionRef.current[1]) > 0.1 ||
+      Math.abs(position[2] - prevPositionRef.current[2]) > 0.1;
+    
+    if (positionChanged && meshRef.current) {
+      meshRef.current.position.set(...position);
+      prevPositionRef.current = [...position];
+    }
+  }, [position[0], position[1], position[2]]);
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
@@ -392,28 +401,70 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ boosted, phase, popActive }) => {
+const Scene = ({ boosted, phase, popActive, isActiveTransitioning }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
 
   const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
-  // completed phase에서는 이미 상단으로 이동한 상태이므로 bottomStartPosition도 상단 위치로 설정
-  const bottomStartPosition = useMemo(() => 
-    phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0], 
-    [phase, spacing]
-  );
-  const bottomTargetPosition = useMemo(
-    () => (phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0]),
-    [phase, spacing],
-  );
+  
+  // 위치와 크기가 동시에 변경되도록 설정
+  // 액티브: 하단에서 시작 → 상단으로 올라가면서 커짐 (위치와 크기 동시 변경)
+  // 원상복구: 상단에서 시작 → 하단으로 내려오면서 작아짐 (위치와 크기 동시 변경)
+  const bottomStartPosition = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브 시작: 하단 위치에서 시작 (작은 크기)
+      return [0, -(spacing + 0.3), 0];
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구 시작: 상단 위치에서 시작 (큰 크기) - 내려오면서 작아짐
+      return [0, spacing + 0.3, 0];
+    }
+    // 기본: phase에 따라 설정
+    return phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0];
+  }, [phase, spacing, isActiveTransitioning]);
+  
+  const bottomTargetPosition = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브: 하단 → 상단으로 올라가면서 커짐
+      return [0, spacing + 0.3, 0];
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구: 상단 → 하단으로 내려오면서 작아짐
+      return [0, -(spacing + 0.3), 0];
+    }
+    // 기본: completed phase일 때만 상단 위치
+    return phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0];
+  }, [phase, spacing, isActiveTransitioning]);
 
   const topOpacityTarget = phase === 'idle' ? 1 : 1;
-  // Intro: start larger then settle smaller after typing completes
   const topScaleTarget = phase === 'idle' ? 1.18 : 1;
-  const bottomScaleTarget = popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
-  const bottomPositionLerp = phase === 'completed' ? 0.12 : 0.04;
-  const bottomScaleLerp = popActive ? 0.2 : 0.14;
+  
+  // 위치와 크기가 동시에 변경되도록 크기 설정
+  const bottomScaleStart = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브 시작: 작은 크기에서 시작 (1)
+      return 1;
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구 시작: 큰 크기에서 시작 (2.0) - 내려오면서 작아짐
+      return 2.0;
+    }
+    return phase === 'completed' ? 1.04 : 1;
+  }, [phase, isActiveTransitioning]);
+  
+  const bottomScaleTarget = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브: 올라가면서 동시에 커짐 (1 → 2.0)
+      return 2.0;
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구: 내려오면서 동시에 작아짐 (2.0 → 1)
+      return 1;
+    }
+    return popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
+  }, [popActive, phase, isActiveTransitioning]);
+  
+  // 위치와 크기가 완전히 동시에 한번에 변경되도록 동일한 lerp 값 설정
+  const simultaneousLerp = isActiveTransitioning ? 0.85 : null;
+  const bottomPositionLerp = simultaneousLerp !== null ? simultaneousLerp : (phase === 'completed' ? 0.12 : 0.04);
+  const bottomScaleLerp = simultaneousLerp !== null ? simultaneousLerp : (popActive ? 0.2 : 0.14);
   const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
 
   return (
@@ -436,10 +487,11 @@ const Scene = ({ boosted, phase, popActive }) => {
         position={bottomStartPosition}
         targetPosition={bottomTargetPosition}
         variant={bottomVariant}
-        opacityTarget={phase === 'completed' ? 1 : 0}
+        opacityTarget={(phase === 'completed' || isActiveTransitioning) ? 1 : 0}
         scaleTarget={bottomScaleTarget}
+        initialScale={isActiveTransitioning ? bottomScaleStart : null}
         positionLerp={bottomPositionLerp}
-        opacityLerp={0.1}
+        opacityLerp={isActiveTransitioning ? 0.85 : 0.1}
         scaleLerp={bottomScaleLerp}
         paletteTarget={popActive ? 0.7 : 0.2}
         paletteLerp={0.16}
@@ -449,7 +501,7 @@ const Scene = ({ boosted, phase, popActive }) => {
   );
 };
 
-const CanvasBackground = ({ boosted, phase, popActive }) => {
+const CanvasBackground = ({ boosted, phase, popActive, isActiveTransitioning }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -458,7 +510,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
+        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} isActiveTransitioning={isActiveTransitioning} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -481,12 +533,15 @@ export default function Ver8_1() {
   const [boosted, setBoosted] = useState(false);
   const [phase, setPhase] = useState('idle');
   const [popActive, setPopActive] = useState(false); // 타이핑 이후 표시
+  const [isActiveTransitioning, setIsActiveTransitioning] = useState(null); // 'active' | 'restore' | null
   const boostTimeoutRef = useRef(null);
   const settleTimeoutRef = useRef(null);
   const popTimeoutRef = useRef(null);
   const pulseTimeoutRef = useRef(null);
   const calmTimeoutRef = useRef(null);
   const bottomUiTimeoutRef = useRef(null);
+  const activeTransitionTimeoutRef = useRef(null);
+  const restoreTimeoutRef = useRef(null);
 
   // 타이핑 효과
   const headingText = '친구와 함께라면 분위기 좋은 식당이 좋겠죠';
@@ -514,20 +569,45 @@ export default function Ver8_1() {
     if (popTimeoutRef.current) {
       clearTimeout(popTimeoutRef.current);
     }
+    if (activeTransitionTimeoutRef.current) {
+      clearTimeout(activeTransitionTimeoutRef.current);
+    }
+    if (restoreTimeoutRef.current) {
+      clearTimeout(restoreTimeoutRef.current);
+    }
+    
     if (phase === 'completed') {
-      // completed phase에서는 이미 popActive가 true이므로 타임아웃 없이 유지
-      if (!popActive) {
-        setPopActive(true);
-      }
+      // 새로운 인터랙션 순서:
+      // 1. 먼저 액티브 상태로 위치와 크기를 한번에 변경
+      setIsActiveTransitioning('active');
+      
+      // 2. 액티브 상태 유지 후 원상복구
+      activeTransitionTimeoutRef.current = setTimeout(() => {
+        setIsActiveTransitioning('restore');
+        
+        // 3. 원상복구 후 popActive 활성화 (모달 표시)
+        restoreTimeoutRef.current = setTimeout(() => {
+          setIsActiveTransitioning(null);
+          setPopActive(true);
+        }, 400); // 원상복구 애니메이션 시간
+      }, 800); // 액티브 상태 유지 시간
     } else {
       setPopActive(false);
+      setIsActiveTransitioning(null);
     }
+    
     return () => {
       if (popTimeoutRef.current) {
         clearTimeout(popTimeoutRef.current);
       }
+      if (activeTransitionTimeoutRef.current) {
+        clearTimeout(activeTransitionTimeoutRef.current);
+      }
+      if (restoreTimeoutRef.current) {
+        clearTimeout(restoreTimeoutRef.current);
+      }
     };
-  }, [phase, popActive]);
+  }, [phase]);
 
   // 모달 이후 하단 UI 페이드인
   const [bottomVisible, setBottomVisible] = useState(false);
@@ -587,12 +667,18 @@ export default function Ver8_1() {
       if (calmTimeoutRef.current) {
         clearTimeout(calmTimeoutRef.current);
       }
+      if (activeTransitionTimeoutRef.current) {
+        clearTimeout(activeTransitionTimeoutRef.current);
+      }
+      if (restoreTimeoutRef.current) {
+        clearTimeout(restoreTimeoutRef.current);
+      }
     };
   }, []);
 
   return (
     <div className={`container container--bright ${bottomVisible ? 'container--bottom-visible' : ''}`}>
-      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
+      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} isActiveTransitioning={isActiveTransitioning} />
       <div className="top-heading" aria-hidden={false}>
         {typedText}
       </div>
@@ -639,11 +725,12 @@ export default function Ver8_1() {
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
           /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: 22px;
+          --glass-radius: clamp(28px, 8vw, 36px);
           --glass-side: clamp(16px, 5.2vw, 24px);
           --glass-inner: clamp(20px, 5vw, 28px);
           --ui-gray: #E6EBEF; /* cooler gray for message bar */
           --chip-offset: clamp(8px, 2vw, 14px);
+          --chip-gap: 12px; /* for animation math only; layout gap stays as-is */
           --mb-h: clamp(44px, 7.2vh, 52px);
           --mb-bottom: clamp(36px, 6vh, 56px);
           /* Safe-area aware margins (for iOS notch, etc.) */
@@ -657,6 +744,8 @@ export default function Ver8_1() {
           --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
           /* compensate for asymmetric safe-areas to keep true center aligned */
           --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
+          /* minimum breathing space between header and modal (responsive) */
+          --header-gap: clamp(5px, 1.6vh, 12px);
           /* Small right shift for suggestions */
           --suggest-shift: clamp(6px, 1.6vw, 14px);
           --blob-tint: rgba(118, 212, 255, 0.12);
@@ -703,7 +792,7 @@ export default function Ver8_1() {
           align-items: center;
           justify-content: center;
           /* Keep vertical space flexible, lock horizontal to match reference */
-          padding: clamp(28px, 10vh, 64px) 0 clamp(24px, 10vh, 56px) 0;
+          padding: calc(clamp(28px, 10vh, 64px) + var(--header-gap)) 0 clamp(24px, 10vh, 56px) 0;
           pointer-events: none;
           z-index: 90;
         }
@@ -817,24 +906,27 @@ export default function Ver8_1() {
         }
         .text {
           display: grid;
-          gap: calc(14px * var(--modal-scale));
+          gap: clamp(12px, 3vw, 16px);
           color: #204a53;
           font-weight: 700;
-          letter-spacing: 0;
-          max-width: 30ch;
-          margin: 0 auto;
-          text-align: left;
+          text-align: center;
+          letter-spacing: -0.01em;
         }
-        .text p { margin: 0; line-height: 2.0; }
+        .text p { margin: 0; line-height: 2.02; }
         .text .small {
           color: #2b5b64;
-          opacity: 0.84;
-          font-weight: 500;
-          margin-top: clamp(12px, 2.8vw, 18px);
+          font-weight: 600;
+          opacity: 0.88;
+          /* appear as if it's on a new paragraph with indent */
+          margin-top: clamp(18px, 4.2vw, 26px);
           text-align: left;
-          text-indent: 0;
-          white-space: normal;
+          text-indent: 1.2em;
+          max-width: none;
+          width: 100%;
+          white-space: nowrap;
           word-break: keep-all;
+          margin-left: auto;
+          margin-right: auto;
         }
         .hl {
           display: inline-block;
@@ -848,24 +940,6 @@ export default function Ver8_1() {
           backdrop-filter: blur(12px) saturate(1.25);
           -webkit-backdrop-filter: blur(12px) saturate(1.25);
           color: #0f3a41;
-          position: relative;
-          overflow: visible;
-        }
-        /* opacity-only glow using a soft overlay */
-        .hl::before {
-          content: '';
-          position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.30) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.18;
-          animation: hlOpacityGlow 2600ms ease-in-out infinite;
-          pointer-events: none;
-        }
-        @keyframes hlOpacityGlow {
-          0%, 100% { opacity: 0.16; }
-          50% { opacity: 0.32; }
         }
         @keyframes receiptPrint {
           0% { transform: scaleY(0.02); }
@@ -881,7 +955,6 @@ export default function Ver8_1() {
           margin: 0;
           font-size: clamp(18px, 4.6vw, 22px);
           font-weight: 800;
-          text-wrap: balance;
         }
         .glass-content p {
           margin: 0;
@@ -918,9 +991,9 @@ export default function Ver8_1() {
           left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
           right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
           transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 18px);
+          bottom: calc(var(--mb-bottom) + var(--mb-h) + 10px);
           display: grid;
-          gap: 10px;
+          gap: 12px; /* keep original spacing */
           width: auto;
           z-index: 55; /* above modal, below message bar */
           pointer-events: none;
@@ -933,52 +1006,59 @@ export default function Ver8_1() {
         .chip {
           justify-self: start;
           max-width: 100%;
-          padding: clamp(9px, 2.6vw, 12px) clamp(12px, 3.2vw, 16px);
+          padding: clamp(12px, 3.2vw, 14px) clamp(16px, 4vw, 18px);
           border-radius: 999px;
-          border: 0.5px solid rgba(190,225,255,0.45);
-          background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+          border: 0.5px solid rgba(255,255,255,0.34);
+          background: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.18) 100%);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.78),
             0 6px 16px rgba(40, 80, 96, 0.08);
           backdrop-filter: blur(14px) saturate(1.08);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.54);
           font-weight: 500;
-          font-size: 12px;
+          font-size: 14px;
           pointer-events: auto;
           white-space: nowrap;
+          /* animate visually without altering layout sizing/gap */
+          animation: chipDrop 700ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
         }
-        /* Make all chips a light blue, matching blob tint */
+        .suggestions .chip:nth-child(2) { animation-delay: 720ms; }
+        .suggestions .chip:nth-child(3) { animation-delay: 1440ms; }
+        @keyframes chipDrop {
+          0%   { transform: translateY(-120%); opacity: 0; }
+          60%  { opacity: 1; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        /* Press chips slightly with blob-tint; upper chips are more "pressed" */
         .suggestions .chip:nth-child(1) {
-          border-color: rgba(190,225,255,0.45);
+          border-color: rgba(255,255,255,0.30);
           background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+            radial-gradient(120% 90% at 15% 15%, rgba(118,212,255,0.28), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
+            inset 0 1px 0 rgba(255,255,255,0.62),
             0 5px 12px rgba(40, 80, 96, 0.06);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.58);
         }
         .suggestions .chip:nth-child(2) {
-          border-color: rgba(190,225,255,0.45);
+          border-color: rgba(255,255,255,0.28);
           background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+            radial-gradient(120% 80% at 80% 0%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.16) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
+            inset 0 1px 0 rgba(255,255,255,0.70),
             0 6px 14px rgba(40, 80, 96, 0.07);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.56);
         }
         .suggestions .chip:nth-child(3) {
-          border-color: rgba(190,225,255,0.45);
+          border-color: rgba(255,255,255,0.26);
           background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+            radial-gradient(120% 80% at 85% 0%, rgba(118,212,255,0.12), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
+            inset 0 1px 0 rgba(255,255,255,0.72),
             0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.54);
         }
         .chip--medium {
           border-color: rgba(255,255,255,0.32);
@@ -1048,4 +1128,5 @@ export default function Ver8_1() {
     </div>
   );
 }
+
 

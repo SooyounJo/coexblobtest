@@ -16,13 +16,13 @@ export default function Ver8_2() {
             rgba(255,255,255,0.00) 18%,
             rgba(255,255,255,0.06) 30%,
             rgba(255,255,255,0.18) 66%,
-            rgba(255,255,255,0.38) 100%
+            rgba(255,255,255,0.70) 100%
           ) !important;
           border: 0.5px solid rgba(255,255,255,0.12) !important;
           backdrop-filter: blur(36px) saturate(0.88) brightness(1.02) contrast(0.92) !important;
           -webkit-backdrop-filter: blur(36px) saturate(0.88) brightness(1.02) contrast(0.92) !important;
           filter: saturate(0.90) !important;
-          border-radius: 30px !important;
+          border-radius: 28px !important;
         }
         /* Make highlight pill taller in v2 */
         .hl { padding: 0.20em 0.72em !important; }

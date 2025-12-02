@@ -372,6 +372,7 @@ const AgenticBubble = ({
       material.uniforms.paletteMix.value = paletteRef.current;
     }
 
+
     if (meshRef.current) {
       const time = state.clock.getElapsedTime();
       const smoothFreq = breathe ? 0.28 : 0.18;
@@ -392,64 +393,52 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ boosted, phase, popActive }) => {
+const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLevel = 0 }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
 
-  const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
-  // completed phase에서는 이미 상단으로 이동한 상태이므로 bottomStartPosition도 상단 위치로 설정
-  const bottomStartPosition = useMemo(() => 
-    phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0], 
-    [phase, spacing]
-  );
-  const bottomTargetPosition = useMemo(
-    () => (phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0]),
-    [phase, spacing],
-  );
+  const topPosition = useMemo(() => [0, 0, 0], []);
 
-  const topOpacityTarget = phase === 'idle' ? 1 : 1;
-  // Intro: start larger then settle smaller after typing completes
-  const topScaleTarget = phase === 'idle' ? 1.18 : 1;
-  const bottomScaleTarget = popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
-  const bottomPositionLerp = phase === 'completed' ? 0.12 : 0.04;
-  const bottomScaleLerp = popActive ? 0.2 : 0.14;
-  const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
+  const topOpacityTarget = 1;
+  const topScaleTarget = shrink ? 0.48 : (phase === 'idle' ? 1.18 : 1);
+  const variant = (waving || waveLevel > 0.05) ? 'water' : 'default';
+
+  // Smooth group movement (one blob moving)
+  const groupRef = useRef(null);
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(0, 0.8, 1);
+    }
+  }, []);
+  const groupYTarget = centered ? 0.0 : 0.8;
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, groupYTarget, 0.06);
+    }
+  });
 
   return (
-    <group position={[0, 0.8, 1]} renderOrder={1000}>
+    <group ref={groupRef} renderOrder={1000}>
       <AgenticBubble
-        boosted={false}
+        boosted={waving}
         position={topPosition}
         targetPosition={topPosition}
-        variant="default"
+        variant={variant}
         opacityTarget={topOpacityTarget}
         scaleTarget={topScaleTarget}
-        positionLerp={0.08}
+        positionLerp={0.07}
         opacityLerp={0.06}
-        scaleLerp={0.18}
-        paletteTarget={0}
-        paletteLerp={0.1}
-      />
-      <AgenticBubble
-        boosted={boosted}
-        position={bottomStartPosition}
-        targetPosition={bottomTargetPosition}
-        variant={bottomVariant}
-        opacityTarget={phase === 'completed' ? 1 : 0}
-        scaleTarget={bottomScaleTarget}
-        positionLerp={bottomPositionLerp}
-        opacityLerp={0.1}
-        scaleLerp={bottomScaleLerp}
-        paletteTarget={popActive ? 0.7 : 0.2}
-        paletteLerp={0.16}
-        breathe={popActive}
+        scaleLerp={0.10}
+        paletteTarget={Math.max(0, Math.min(0.7, waveLevel))}
+        paletteLerp={0.12}
+        breathe={waveLevel > 0.05}
       />
     </group>
   );
 };
 
-const CanvasBackground = ({ boosted, phase, popActive }) => {
+const CanvasBackground = ({ phase, shrink, centered, waving, waveLevel }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -458,7 +447,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
+        <Scene phase={phase} shrink={shrink} centered={centered} waving={waving} waveLevel={waveLevel} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -476,159 +465,65 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
   );
 };
 
-export default function Ver8_1() {
-  // 초기 상태를 'completed'로 설정하여 블롭이 이미 커진 상태에서 시작
-  const [boosted, setBoosted] = useState(false);
-  const [phase, setPhase] = useState('idle');
-  const [popActive, setPopActive] = useState(false); // 타이핑 이후 표시
-  const boostTimeoutRef = useRef(null);
-  const settleTimeoutRef = useRef(null);
-  const popTimeoutRef = useRef(null);
-  const pulseTimeoutRef = useRef(null);
-  const calmTimeoutRef = useRef(null);
-  const bottomUiTimeoutRef = useRef(null);
-
-  // 타이핑 효과
-  const headingText = '친구와 함께라면 분위기 좋은 식당이 좋겠죠';
-  const [typedText, setTypedText] = useState('');
-  const [typingDone, setTypingDone] = useState(false);
-
-  // 초기 마운트 시 popActive가 활성화되도록 설정
-  useEffect(() => {
-    let idx = 0;
-    const speed = 60; // ms per char
-    const typer = setInterval(() => {
-      idx += 1;
-      setTypedText(headingText.slice(0, idx));
-      if (idx >= headingText.length) {
-        clearInterval(typer);
-        setTypingDone(true);
-        // 타이핑 완료 후 모달 표시
-        setTimeout(() => setPhase('completed'), 300);
-      }
-    }, speed);
-    return () => clearInterval(typer);
-  }, []);
-
-  useEffect(() => {
-    if (popTimeoutRef.current) {
-      clearTimeout(popTimeoutRef.current);
-    }
-    if (phase === 'completed') {
-      // completed phase에서는 이미 popActive가 true이므로 타임아웃 없이 유지
-      if (!popActive) {
-        setPopActive(true);
-      }
-    } else {
-      setPopActive(false);
-    }
-    return () => {
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
+export default function Ver9_1() {
+  const [phase] = useState('completed');
+  const [shrink, setShrink] = useState(false);
+  const [centered, setCentered] = useState(false);
+  const [waving, setWaving] = useState(false);
+  const [waveLevel, setWaveLevel] = useState(0); // 0..0.7
+  const waveLevelRef = useRef(0);
+  useEffect(() => { waveLevelRef.current = waveLevel; }, [waveLevel]);
+  const tweenRef = useRef(null);
+  const tweenWave = (to, duration = 400) => {
+    if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
+    const from = waveLevelRef.current;
+    const start = performance.now();
+    const ease = (t) => 0.5 - 0.5 * Math.cos(Math.PI * t);
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      setWaveLevel(from + (to - from) * ease(t));
+      if (t < 1) tweenRef.current = requestAnimationFrame(step);
     };
-  }, [phase, popActive]);
-
-  // 모달 이후 하단 UI 페이드인
-  const [bottomVisible, setBottomVisible] = useState(false);
-  useEffect(() => {
-    if (bottomUiTimeoutRef.current) clearTimeout(bottomUiTimeoutRef.current);
-    if (popActive) {
-      bottomUiTimeoutRef.current = setTimeout(() => setBottomVisible(true), 900);
-    } else {
-      setBottomVisible(false);
-    }
-    return () => {
-      if (bottomUiTimeoutRef.current) clearTimeout(bottomUiTimeoutRef.current);
-    };
-  }, [popActive]);
+    tweenRef.current = requestAnimationFrame(step);
+  };
 
   useEffect(() => {
-    if (pulseTimeoutRef.current) {
-      clearTimeout(pulseTimeoutRef.current);
-    }
-    if (calmTimeoutRef.current) {
-      clearTimeout(calmTimeoutRef.current);
-    }
-    if (popActive) {
-      pulseTimeoutRef.current = setTimeout(() => {
-        setBoosted(true);
-        calmTimeoutRef.current = setTimeout(() => {
-          setBoosted(false);
-        }, 2800);
-      }, 1000);
-    } else {
-      setBoosted(false);
-    }
+    const t1 = setTimeout(() => {
+      setCentered(true); // 1) 원래 자리에서 내려와 중앙으로
+    }, 1000);
+    const t2 = setTimeout(() => {
+      setShrink(true);   // 2) 작아지고
+      tweenWave(0.4, 300); // 축소 도입부: 약한 웨이브
+    }, 1400);
+    const t3 = setTimeout(() => {
+      setWaving(true);   // 3) 웨이브 시작
+      tweenWave(0.7, 400); // 웨이브 강하게
+    }, 1600);
+    const t4 = setTimeout(() => {
+      setWaving(false);  // 3초 웨이브 종료
+      tweenWave(0.0, 500); // 부드럽게 잔향 제거
+    }, 1600 + 3000);
+    const t5 = setTimeout(() => {
+      setShrink(false);  // 4) 중앙 그대로 커지고 (웨이브 완전히 멈춘 뒤 시작)
+    }, 1600 + 3000 + 600);
+    const t6 = setTimeout(() => {
+      setCentered(false); // 5) 원래 자리로 이동 (중앙에서 충분히 커진 뒤 이동)
+    }, 1600 + 3000 + 1500);
     return () => {
-      if (pulseTimeoutRef.current) {
-        clearTimeout(pulseTimeoutRef.current);
-      }
-      if (calmTimeoutRef.current) {
-        clearTimeout(calmTimeoutRef.current);
-      }
-    };
-  }, [popActive]);
-
-  useEffect(() => {
-    return () => {
-      if (boostTimeoutRef.current) {
-        clearTimeout(boostTimeoutRef.current);
-      }
-      if (settleTimeoutRef.current) {
-        clearTimeout(settleTimeoutRef.current);
-      }
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
-      if (pulseTimeoutRef.current) {
-        clearTimeout(pulseTimeoutRef.current);
-      }
-      if (calmTimeoutRef.current) {
-        clearTimeout(calmTimeoutRef.current);
-      }
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+      clearTimeout(t6);
+      if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
     };
   }, []);
 
   return (
-    <div className={`container container--bright ${bottomVisible ? 'container--bottom-visible' : ''}`}>
-      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
-      <div className="top-heading" aria-hidden={false}>
-        {typedText}
-      </div>
-      {popActive && (
-        <div className="glass-overlay glass-overlay--visible" aria-hidden={!popActive}>
-          <div className="glass-modal">
-            <div className="glass-content">
-              <div
-                className="photo"
-                role="img"
-                aria-label="딤섬과 음식이 놓인 테이블"
-              />
-              <div className="text">
-                <p>
-                  <span className="hl">딤딤섬</span> 에서는 홍콩 딤섬을 맛볼 수 있고,
-                </p>
-                <p>
-                  <span className="hl">무월식탁</span> 에서는 정갈하게 차려낸
-                  <br />한식을 즐기실 수 있답니다
-                </p>
-                <p className="small">두 곳 모두 깔끔하고 모던한 분위기로 인기가 많아요</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      <div className={`suggestions ${bottomVisible ? 'suggestions--visible' : ''}`} aria-hidden={!bottomVisible}>
-        <div className="chip chip--strong">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-        <div className="chip chip--medium">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-        <div className="chip chip--light">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-      </div>
-      <div className={`message-bar ${bottomVisible ? 'message-bar--visible' : ''}`} role="form" aria-label="메시지 입력" aria-hidden={!bottomVisible}>
-        <button type="button" className="msg-btn add" aria-label="추가">＋</button>
-        <input className="msg-input" type="text" placeholder="메시지 보내기..." />
-        <button type="button" className="msg-btn voice" aria-label="음성">🎤</button>
-      </div>
+    <div className="container container--bright">
+      <CanvasBackground phase={phase} shrink={shrink} centered={centered} waving={waving} waveLevel={waveLevel} />
+      <div className="status" role="status" aria-live="polite">생각 중이에요</div>
       <style jsx>{`
         .container {
           position: relative;
@@ -638,412 +533,42 @@ export default function Ver8_1() {
           background: radial-gradient(circle at 30% 20%, #fffdfc 0%, #fff6fa 38%, #fdeff3 100%);
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: 22px;
+          /* Responsive tokens to match v9/3 background exactly */
+          --glass-radius: clamp(28px, 8vw, 36px);
           --glass-side: clamp(16px, 5.2vw, 24px);
           --glass-inner: clamp(20px, 5vw, 28px);
-          --ui-gray: #E6EBEF; /* cooler gray for message bar */
+          --ui-gray: #E6EBEF;
           --chip-offset: clamp(8px, 2vw, 14px);
+          --chip-gap: 12px;
           --mb-h: clamp(44px, 7.2vh, 52px);
           --mb-bottom: clamp(36px, 6vh, 56px);
-          /* Safe-area aware margins (for iOS notch, etc.) */
           --safe-l: env(safe-area-inset-left, 0px);
           --safe-r: env(safe-area-inset-right, 0px);
           --side-left: calc(var(--glass-side) + var(--safe-l));
           --side-right: calc(var(--glass-side) + var(--safe-r));
-          /* Slightly shrink main modal width compared to message bar */
           --modal-shrink: clamp(14px, 3.6vw, 28px);
-          /* unified frame width to avoid rounding mismatches across devices */
           --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
-          /* compensate for asymmetric safe-areas to keep true center aligned */
           --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
-          /* Small right shift for suggestions */
+          --header-gap: clamp(5px, 1.6vh, 12px);
           --suggest-shift: clamp(6px, 1.6vw, 14px);
           --blob-tint: rgba(118, 212, 255, 0.12);
-          /* extra inset for main modal only (v2 can override) */
           --modal-extra-inset: 0px;
-        }
-        /* enforce Pretendard Variable across the page */
-        :global(html), :global(body), :global(input), :global(button), :global(textarea) {
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-        }
-        .top-heading {
-          position: fixed;
-          top: clamp(36px, 8vh, 80px);
-          left: 50%;
-          transform: translateX(-50%);
-          width: calc(100% - var(--side-left) - var(--side-right));
-          color: #2e3d46;
-          font-weight: 700;
-          font-size: 16px;
-          text-align: center;
-          line-height: 1.4;
-          z-index: 60;
-          text-shadow: 0 12px 30px rgba(0,0,0,0.06);
         }
         .container--bright {
           background: radial-gradient(circle at 30% 20%, #fffeff 0%, #fff7fb 38%, #fbeff5 100%);
         }
-        /* When bottom UI is visible, soften the modal slightly */
-        .container--bottom-visible .glass-content {
-          background: linear-gradient(
-            180deg,
-            rgba(255,255,255,0.00) 0%,
-            rgba(255,255,255,0.00) 16.666%,
-            rgba(255,255,255,0.08) 30%,
-            rgba(255,255,255,0.30) 66%,
-            rgba(255,255,255,0.70) 100%
-          );
-          border-color: rgba(255,255,255,0.16);
-        }
-        .glass-overlay {
-          position: fixed;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          /* Keep vertical space flexible, lock horizontal to match reference */
-          padding: clamp(28px, 10vh, 64px) 0 clamp(24px, 10vh, 56px) 0;
-          pointer-events: none;
-          z-index: 90;
-        }
-        .glass-overlay--visible {
-          pointer-events: auto;
-        }
-        .glass-modal {
-          /* Hard-match message-bar horizontal margins */
-          --modal-w: calc(var(--frame-width) - (var(--modal-extra-inset) * 2));
-          width: var(--modal-w);
-          margin-left: calc(var(--side-left) + var(--modal-shrink) + var(--modal-extra-inset) - var(--center-fix));
-          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--modal-extra-inset) + var(--center-fix));
-          /* Slightly wider card to avoid overly tall feel */
-          aspect-ratio: 164 / 190;
-          display: grid;
-          place-items: center;
-          transform: translateY(-10vh);
-          pointer-events: none;
-          position: relative;
-          z-index: 1;
-        }
-        .glass-modal, .glass-content { box-sizing: border-box; }
-        /* Top scanline that draws once on mount */
-        .glass-modal::before {
-          content: '';
+        .status {
           position: absolute;
-          top: 0;
+          top: 24vh;
           left: 0;
           right: 0;
-          height: 1px;
-          background: rgba(255,255,255,0.75);
-          box-shadow: 0 0 8px rgba(255,255,255,0.38);
-          opacity: 0;
-          transform-origin: left center;
-          transform: scaleX(0);
-          pointer-events: none;
-        }
-        .glass-overlay--visible .glass-modal::before {
-          animation: drawLine 600ms ease-out forwards;
-        }
-        .glass-content {
-          /* scale inner layout proportionally to modal width (base ≈ 420px) */
-          --modal-scale: clamp(0.84, calc(var(--modal-w) / 420px), 1.20);
-          display: grid;
-          gap: calc(20px * var(--modal-scale));
-          padding: calc(26px * var(--modal-scale)) var(--glass-inner) calc(26px * var(--modal-scale));
-          border-radius: var(--glass-radius);
-          transform: scaleY(0.02);
-          transform-origin: top center;
-          will-change: transform;
-          /* Softer, more transparent glass: top 30% → bottom 70% white */
-          background: linear-gradient(
-            180deg,
-            rgba(255,255,255,0.00) 0%,
-            rgba(255,255,255,0.00) 16.666%,
-            rgba(255,255,255,0.12) 30%,
-            rgba(255,255,255,0.38) 66%,
-            rgba(255,255,255,0.70) 100%
-          );
-          border: 0.5px solid rgba(255,255,255,0.20);
-          box-shadow:
-            0 28px 48px rgba(22, 42, 58, 0.10),
-            inset 0 0.5px 0 rgba(255,255,255,0.18),
-            inset 0 -12px 36px rgba(255,255,255,0.05);
-          backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
-          -webkit-backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
-          /* Desaturate inner contents slightly for a washed, matte look */
-          filter: saturate(0.92);
           text-align: center;
-          color: #1f2640;
-          position: relative;
-          overflow: hidden;
-        }
-        .glass-overlay--visible .glass-content {
-          animation: receiptPrint 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .glass-content::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          /* Glossy sheen, but toned down for more transparency */
-          background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 55%, rgba(255,255,255,0.0) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.06;
-          pointer-events: none;
-        }
-        .glass-content::after {
-          content: '';
-          position: absolute;
-          inset: -28%;
-          background:
-            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.08), transparent 60%),
-            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.035), transparent 70%),
-            rgba(255,255,255,0.010);
-          opacity: 0.07;
-          filter: blur(50px) saturate(1.0);
-          pointer-events: none;
-        }
-        .photo {
-          width: 100%;
-          aspect-ratio: 4 / 3;
-          border-radius: calc(var(--glass-radius) - (12px * var(--modal-scale)));
-          background:
-            url('https://images.unsplash.com/photo-1604908177522-b4f0c19e6bd0?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
-            rgba(255,255,255,0.10);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.48);
-          margin-top: calc(8px * var(--modal-scale));
-          margin-bottom: calc(20px * var(--modal-scale));
-        }
-        .text {
-          display: grid;
-          gap: calc(14px * var(--modal-scale));
-          color: #204a53;
-          font-weight: 700;
-          letter-spacing: 0;
-          max-width: 30ch;
-          margin: 0 auto;
-          text-align: left;
-        }
-        .text p { margin: 0; line-height: 2.0; }
-        .text .small {
-          color: #2b5b64;
-          opacity: 0.84;
-          font-weight: 500;
-          margin-top: clamp(12px, 2.8vw, 18px);
-          text-align: left;
-          text-indent: 0;
-          white-space: normal;
-          word-break: keep-all;
-        }
-        .hl {
-          display: inline-block;
-          padding: 0.08em 0.68em;
-          border-radius: 999px;
-          background: linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.72) 100%);
-          border: 1px solid rgba(255,255,255,1);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,1),
-            0 3px 10px rgba(16,24,40,0.12);
-          backdrop-filter: blur(12px) saturate(1.25);
-          -webkit-backdrop-filter: blur(12px) saturate(1.25);
           color: #0f3a41;
-          position: relative;
-          overflow: visible;
-        }
-        /* opacity-only glow using a soft overlay */
-        .hl::before {
-          content: '';
-          position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.30) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.18;
-          animation: hlOpacityGlow 2600ms ease-in-out infinite;
-          pointer-events: none;
-        }
-        @keyframes hlOpacityGlow {
-          0%, 100% { opacity: 0.16; }
-          50% { opacity: 0.32; }
-        }
-        @keyframes receiptPrint {
-          0% { transform: scaleY(0.02); }
-          70% { transform: scaleY(1.04); }
-          100% { transform: scaleY(1); }
-        }
-        @keyframes drawLine {
-          0%   { opacity: 0; transform: scaleX(0); }
-          20%  { opacity: 1; }
-          100% { opacity: 0; transform: scaleX(1); }
-        }
-        .glass-content h3 {
-          margin: 0;
-          font-size: clamp(18px, 4.6vw, 22px);
-          font-weight: 800;
-          text-wrap: balance;
-        }
-        .glass-content p {
-          margin: 0;
-          font-size: 15px;
-          font-weight: 500;
-          opacity: 0.84;
-          line-height: 1.6;
-        }
-        .primary {
-          border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.58);
-          background: linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.46) 50%, rgba(255,255,255,0.34) 100%);
-          box-shadow:
-            0 8px 18px rgba(30, 76, 78, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.72);
-          backdrop-filter: blur(18px) saturate(1.0) brightness(1.00);
-          color: #2a2f42;
           font-weight: 700;
-          font-size: clamp(12px, 3.2vw, 14px);
-          padding: clamp(9px, 2.6vw, 12px) clamp(24px, 6.2vw, 32px);
-          cursor: pointer;
-          transition: box-shadow 180ms ease, transform 180ms ease;
-        }
-        .primary:hover {
-          box-shadow:
-            0 24px 42px rgba(30, 76, 78, 0.20),
-            inset 0 1px 0 rgba(255,255,255,0.66);
-          transform: translateY(-2px);
-        }
-        .primary:focus { outline: none; }
-        /* Bottom suggestion chips (glass-like) */
-        .suggestions {
-          position: fixed;
-          left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
-          right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
-          transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 18px);
-          display: grid;
-          gap: 10px;
-          width: auto;
-          z-index: 55; /* above modal, below message bar */
-          pointer-events: none;
-          justify-items: start;
-          opacity: 0;
-          transform: translate(var(--suggest-shift), 10px);
-          transition: opacity 520ms ease, transform 520ms ease;
-        }
-        .suggestions--visible { opacity: 1; transform: translate(var(--suggest-shift), 0); pointer-events: auto; }
-        .chip {
-          justify-self: start;
-          max-width: 100%;
-          padding: clamp(9px, 2.6vw, 12px) clamp(12px, 3.2vw, 16px);
-          border-radius: 999px;
-          border: 0.5px solid rgba(190,225,255,0.45);
-          background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.78),
-            0 6px 16px rgba(40, 80, 96, 0.08);
-          backdrop-filter: blur(14px) saturate(1.08);
-          color: rgba(34,66,92,0.58);
-          font-weight: 500;
-          font-size: 12px;
-          pointer-events: auto;
-          white-space: nowrap;
-        }
-        /* Make all chips a light blue, matching blob tint */
-        .suggestions .chip:nth-child(1) {
-          border-color: rgba(190,225,255,0.45);
-          background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
-            0 5px 12px rgba(40, 80, 96, 0.06);
-          color: rgba(34,66,92,0.58);
-        }
-        .suggestions .chip:nth-child(2) {
-          border-color: rgba(190,225,255,0.45);
-          background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
-            0 6px 14px rgba(40, 80, 96, 0.07);
-          color: rgba(34,66,92,0.58);
-        }
-        .suggestions .chip:nth-child(3) {
-          border-color: rgba(190,225,255,0.45);
-          background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
-            0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(34,66,92,0.58);
-        }
-        .chip--medium {
-          border-color: rgba(255,255,255,0.32);
-          background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.18) 100%);
-        }
-        .chip--light {
-          border-color: rgba(255,255,255,0.28);
-          background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.14) 100%);
-        }
-        /* Message input bar */
-        .message-bar {
-          position: fixed;
-          width: var(--frame-width);
-          margin-left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
-          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
-          transform: none;
-          bottom: calc(var(--mb-bottom) - 4px);
-          height: var(--mb-h);
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 10px;
-          padding: 0 12px;
-          border-radius: 999px;
-          border: none;
-          background: var(--ui-gray);
-          box-shadow: none;
-          backdrop-filter: none;
-          z-index: 60;
-          opacity: 0;
-          transform: translateY(10px);
-          transition: opacity 520ms ease, transform 520ms ease;
-          box-sizing: border-box;
-        }
-        .message-bar--visible { opacity: 1; transform: translateY(0); }
-        .msg-input {
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          color: #4b4f5c;
-          font-weight: 600;
-          outline: none;
-        }
-        .msg-input::placeholder {
-          color: rgba(60, 60, 72, 0.55);
-          font-weight: 500;
-        }
-        .msg-btn {
-          border: none;
-          background: transparent;
-          color: #586076;
           font-size: 18px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          transition: transform 160ms ease, background 160ms ease;
+          text-shadow: 0 10px 30px rgba(0,0,0,0.06);
+          z-index: 50;
         }
-        .msg-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(0,0,0,0.04);
-        }
-        .msg-btn:focus { outline: none; }
       `}</style>
     </div>
   );
