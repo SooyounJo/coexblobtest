@@ -213,10 +213,10 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         vec3 centerYellow=vec3(1.00, 0.95, 0.45);
         vec3 lavender=vec3(0.90, 0.62, 1.00);
         vec3 deepLavender=vec3(0.60, 0.45, 0.95);
-        vec3 base=mix(neonMint,emerald,clamp(0.45+0.55*topness,0.0,1.0));
-        base=mix(base,vividGreen,smoothstep(0.12,0.38,topness));
-        base=mix(base,lavender,smoothstep(0.0,0.45,1.0-topness));
-        base=mix(base,deepLavender,smoothstep(-0.4,0.2,p.y)*0.42);
+        vec3 base=mix(neonMint,emerald,clamp(0.4+0.6*topness,0.0,1.0));
+        base=mix(base,vividGreen,smoothstep(0.1,0.36,topness));
+        base=mix(base,lavender,smoothstep(0.0,0.55,1.0-topness));
+        base=mix(base,deepLavender,smoothstep(-0.36,0.2,p.y)*0.42);
         float loopSec=12.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
         float rippleIntensity = 1.0 + boost * 1.25; // 리플 강도 줄임
         float drop1=sin(time*2.0)*0.3+0.5; float drop2=sin(time*1.7+1.5)*0.25+0.5; float drop3=sin(time*2.3+3.1)*0.2+0.5;
@@ -378,7 +378,7 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLevel = 0 }) => {
+const Scene = ({ phase, centered = false, waving = false, waveLevel = 0 }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
@@ -386,7 +386,7 @@ const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLe
   const topPosition = useMemo(() => [0, 0, 0], []);
 
   const topOpacityTarget = 1;
-  const topScaleTarget = shrink ? 0.48 : (phase === 'idle' ? 1.18 : 1);
+  const topScaleTarget = phase === 'idle' ? 1.18 : 1;
   const variant = (waving || waveLevel > 0.05) ? 'water' : 'default';
 
   // Smooth group movement (one blob moving)
@@ -414,16 +414,16 @@ const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLe
         scaleTarget={topScaleTarget}
         positionLerp={0.08}
         opacityLerp={0.06}
-        scaleLerp={0.12}
+        scaleLerp={0.16}
         paletteTarget={Math.max(0, Math.min(0.85, waveLevel))}
-        paletteLerp={0.12}
+        paletteLerp={0.14}
         breathe={waveLevel > 0.05}
       />
     </group>
   );
 };
 
-const CanvasBackground = ({ phase, shrink, centered, waving, waveLevel }) => {
+const CanvasBackground = ({ phase, centered, waving, waveLevel }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -432,7 +432,7 @@ const CanvasBackground = ({ phase, shrink, centered, waving, waveLevel }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene phase={phase} shrink={shrink} centered={centered} waving={waving} waveLevel={waveLevel} />
+        <Scene phase={phase} centered={centered} waving={waving} waveLevel={waveLevel} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -452,7 +452,6 @@ const CanvasBackground = ({ phase, shrink, centered, waving, waveLevel }) => {
 
 export default function Ver9_1() {
   const [phase] = useState('completed');
-  const [shrink, setShrink] = useState(false);
   const [centered, setCentered] = useState(false);
   const [waving, setWaving] = useState(false);
   const [waveLevel, setWaveLevel] = useState(0); // 0..0.7
@@ -470,8 +469,13 @@ export default function Ver9_1() {
       easeIn: (t) => t * t, // 천천히 시작
       easeOut: (t) => 1 - (1 - t) * (1 - t), // 천천히 끝
       easeInOutCubic: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // 부드러운 가속/감속
+      easeOutCubic: (t) => 1 - Math.pow(1 - t, 3), // 부드러운 감속
       easeInOutQuart: (t) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2, // 더 부드러운
       easeOutQuart: (t) => 1 - Math.pow(1 - t, 4), // 매우 부드러운 감속
+      easeOutQuint: (t) => 1 - Math.pow(1 - t, 5), // 더욱 부드러운 감속
+      easeInOutExpo: (t) => t === 0 ? 0 : t === 1 ? 1 : t < 0.5 ? Math.pow(2, 20 * t - 10) / 2 : (2 - Math.pow(2, -20 * t + 10)) / 2, // 지수적 감쇠
+      easeOutExpo: (t) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t), // 지수적 감쇠 (종료)
+      easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2, // 사인파 - 매우 부드러운
     };
     
     const ease = easings[easingType] || easings.easeInOut;
@@ -490,35 +494,58 @@ export default function Ver9_1() {
       // 1단계: 천천히 시작 (0 → 0.25)
       tweenWave(0.25, 400, 'easeIn');
     }, 1000);
+    
     const t1 = setTimeout(() => {
       // 2단계: 빠르게 상승 (0.25 → 0.85) - 더 격렬한 웨이브
       tweenWave(0.85, 280, 'easeOut');
     }, 1000 + 400);
+    
     const t1_5 = setTimeout(() => {
       // 2.5단계: 최고점에서 잠시 유지 (0.85 유지)
       // 유지만 하므로 tweenWave 호출 안 함
     }, 1000 + 400 + 280);
+    
     const t2 = setTimeout(() => {
-      // 3단계: 매우 긴 부드러운 감소 (0.85 → 0.0) - 하나의 긴 트랜지션으로 자연스럽게
-      tweenWave(0.0, 3200, 'easeOutQuart'); // 매우 긴 시간으로 부드럽게 감소
-    }, 1000 + 400 + 280 + 500); // 최고점에서 500ms 유지 후 감소
+      // 3단계: 처음 빠르게 감소 (0.85 → 0.55) - 빠르게 시작
+      tweenWave(0.55, 600, 'easeOutCubic');
+    }, 1000 + 400 + 280 + 500);
+    
     const t3 = setTimeout(() => {
+      // 4단계: 중간 속도로 감소 (0.55 → 0.32) - 점진적 감속
+      tweenWave(0.32, 850, 'easeOutQuart');
+    }, 1000 + 400 + 280 + 500 + 600);
+    
+    const t4 = setTimeout(() => {
+      // 5단계: 천천히 감소 (0.32 → 0.12) - 더 부드럽게
+      tweenWave(0.12, 1100, 'easeOutQuint');
+    }, 1000 + 400 + 280 + 500 + 600 + 850);
+    
+    const t5 = setTimeout(() => {
+      // 6단계: 매우 천천히 완전히 멈춤 (0.12 → 0.0) - 가장 부드럽게
+      tweenWave(0.0, 1800, 'easeOutExpo');
+    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1100);
+    
+    const t6 = setTimeout(() => {
       // 웨이브가 거의 끝날 때 setWaving(false)
       setWaving(false);
-    }, 1000 + 400 + 280 + 500 + 3000); // 0.0에 거의 도달한 후에만 false
+    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1100 + 1700);
+    
     return () => {
       clearTimeout(t0);
       clearTimeout(t1);
       clearTimeout(t1_5);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+      clearTimeout(t6);
       if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
     };
   }, []);
 
   return (
     <div className="container container--bright">
-      <CanvasBackground phase={phase} shrink={shrink} centered={centered} waving={waving} waveLevel={waveLevel} />
+      <CanvasBackground phase={phase} centered={centered} waving={waving} waveLevel={waveLevel} />
       <div className="status" role="status" aria-live="polite">생각 중이에요</div>
       <style jsx>{`
         .container {
