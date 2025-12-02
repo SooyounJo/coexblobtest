@@ -21,6 +21,9 @@ const Ver7_D5 = dynamic(() => import('../components/ver7/d5'), { ssr: false });
 const Ver8_1 = dynamic(() => import('../components/ver8/1'), { ssr: false });
 const Ver8_2 = dynamic(() => import('../components/ver8/2'), { ssr: false });
 const Ver8_3 = dynamic(() => import('../components/ver8/3'), { ssr: false });
+const Ver9_1 = dynamic(() => import('../components/ver9/1'), { ssr: false });
+const Ver9_2 = dynamic(() => import('../components/ver9/2'), { ssr: false });
+const Ver9_3 = dynamic(() => import('../components/ver9/3'), { ssr: false });
 
 export default function Home() {
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -28,6 +31,7 @@ export default function Home() {
   const [selectedVer6Component, setSelectedVer6Component] = useState(null);
   const [selectedVer7Component, setSelectedVer7Component] = useState(null);
   const [selectedVer8Component, setSelectedVer8Component] = useState(null);
+  const [selectedVer9Component, setSelectedVer9Component] = useState(null);
 
   const renderContent = () => {
     if (selectedVersion === 'ver1') {
@@ -90,6 +94,17 @@ export default function Home() {
         default:
           return <div>Select a Ver8 component to display.</div>;
       }
+    } else if (selectedVersion === 'ver9') {
+      switch (selectedVer9Component) {
+        case 'ver9_1':
+          return <Ver9_1 />;
+        case 'ver9_2':
+          return <Ver9_2 />;
+        case 'ver9_3':
+          return <Ver9_3 />;
+        default:
+          return <div>Select a Ver9 component to display.</div>;
+      }
     }
     return <div>Select a version to display.</div>;
   };
@@ -126,11 +141,12 @@ export default function Home() {
           {renderContent()}
           {/* Floating version buttons attached to interface (top-left) */}
           <div style={{ position: 'absolute', left: 10, top: 10, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 5001 }}>
-            <CircleButton label="V1" active={selectedVersion === 'ver1'} onClick={() => { setSelectedVersion('ver1'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); }} />
-            <CircleButton label="V5" active={selectedVersion === 'ver5'} onClick={() => { setSelectedVersion('ver5'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer5Component('n1'); }} />
-            <CircleButton label="V6" active={selectedVersion === 'ver6'} onClick={() => { setSelectedVersion('ver6'); setSelectedVer5Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer6Component('ver6_1'); }} />
-            <CircleButton label="V7" active={selectedVersion === 'ver7'} onClick={() => { setSelectedVersion('ver7'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer8Component(null); setSelectedVer7Component('ver7_d1'); }} />
-            <CircleButton label="V8" active={selectedVersion === 'ver8'} onClick={() => { setSelectedVersion('ver8'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component('ver8_1'); }} />
+            <CircleButton label="V1" active={selectedVersion === 'ver1'} onClick={() => { setSelectedVersion('ver1'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer9Component(null); }} />
+            <CircleButton label="V5" active={selectedVersion === 'ver5'} onClick={() => { setSelectedVersion('ver5'); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer9Component(null); setSelectedVer5Component('n1'); }} />
+            <CircleButton label="V6" active={selectedVersion === 'ver6'} onClick={() => { setSelectedVersion('ver6'); setSelectedVer5Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer9Component(null); setSelectedVer6Component('ver6_1'); }} />
+            <CircleButton label="V7" active={selectedVersion === 'ver7'} onClick={() => { setSelectedVersion('ver7'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer8Component(null); setSelectedVer9Component(null); setSelectedVer7Component('ver7_d1'); }} />
+            <CircleButton label="V8" active={selectedVersion === 'ver8'} onClick={() => { setSelectedVersion('ver8'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer9Component(null); setSelectedVer8Component('ver8_1'); }} />
+            <CircleButton label="V9" active={selectedVersion === 'ver9'} onClick={() => { setSelectedVersion('ver9'); setSelectedVer5Component(null); setSelectedVer6Component(null); setSelectedVer7Component(null); setSelectedVer8Component(null); setSelectedVer9Component('ver9_1'); }} />
           </div>
           {selectedVersion === 'ver5' && (
             <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5000 }}>
@@ -165,6 +181,13 @@ export default function Home() {
               <CircleButton label="1" active={selectedVer8Component === 'ver8_1'} onClick={() => setSelectedVer8Component('ver8_1')} />
               <CircleButton label="2" active={selectedVer8Component === 'ver8_2'} onClick={() => setSelectedVer8Component('ver8_2')} />
               <CircleButton label="3" active={selectedVer8Component === 'ver8_3'} onClick={() => setSelectedVer8Component('ver8_3')} />
+            </div>
+          )}
+          {selectedVersion === 'ver9' && (
+            <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, zIndex: 5000 }}>
+              <CircleButton label="1" active={selectedVer9Component === 'ver9_1'} onClick={() => setSelectedVer9Component('ver9_1')} />
+              <CircleButton label="2" active={selectedVer9Component === 'ver9_2'} onClick={() => setSelectedVer9Component('ver9_2')} />
+              <CircleButton label="3" active={selectedVer9Component === 'ver9_3'} onClick={() => setSelectedVer9Component('ver9_3')} />
             </div>
           )}
         </div>

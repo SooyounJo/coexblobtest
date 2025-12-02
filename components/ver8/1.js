@@ -43,7 +43,7 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
       float noise(vec2 p) { return sin(p.x) * cos(p.y) + sin(p.x*2.0)*cos(p.y*2.0)*0.5; }
       float elasticWave(float x, float frequency, float amplitude){ float wave=sin(x*frequency)*amplitude; float decay=exp(-x*0.05); float bounce=sin(x*frequency*2.0)*amplitude*0.3; return (wave+bounce)*decay; }
       float breathingMotion(float time){ float slow=sin(time*0.3)*0.15; float fast=sin(time*0.8)*0.08; float deep=sin(time*0.15)*0.25; return slow+fast+deep; }
-      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=fwidth(f)*1.2; return smoothstep(w+aa,0.0+aa,d);}      
+      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=0.0025; return smoothstep(w+aa,0.0+aa,d);}      
       vec3 bandWeights(float f){ float width=0.25; float y=bumpMove(0.18,width,f); float p=bumpMove(0.52,width,f); float u=bumpMove(0.86,width,f); return vec3(y,p,u);}      
       float softBlur(float x, float strength) {
         return exp(-x * x / strength);
@@ -140,6 +140,7 @@ const createDefaultShaderMaterial = () => new THREE.ShaderMaterial({
       }
     `,
   transparent: true,
+  extensions: { derivatives: true },
 });
 
 const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
@@ -225,7 +226,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       float n2(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); float a=hash(i); float b=hash(i+vec2(1.0,0.0)); float c=hash(i+vec2(0.0,1.0)); float d=hash(i+vec2(1.0,1.0)); vec2 u=f*f*(3.0-2.0*f); return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);}      
       float noise(vec2 p) { return sin(p.x) * cos(p.y) + sin(p.x*2.0)*cos(p.y*2.0)*0.5; }
       float elasticWave(float x, float frequency, float amplitude){ float wave=sin(x*frequency)*amplitude; float decay=exp(-x*0.05); float bounce=sin(x*frequency*2.0)*amplitude*0.3; return (wave+bounce)*decay; }
-      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=fwidth(f)*1.2; return smoothstep(w+aa,0.0+aa,d);}      
+      float bumpMove(float c,float w,float f){ float d0=abs(f-(c-1.0)); float d1=abs(f-c); float d2=abs(f-(c+1.0)); float d=min(d0,min(d1,d2)); float aa=0.0025; return smoothstep(w+aa,0.0+aa,d);}      
       vec3 bandWeights(float f){ float width=0.24; float y=bumpMove(0.18,width,f); float p=bumpMove(0.52,width,f); float u=bumpMove(0.86,width,f); return vec3(y,p,u);}      
       float softBlur(float x, float strength) { return exp(-x * x / strength); }
       void main(){
@@ -318,6 +319,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       }
     `,
   transparent: true,
+  extensions: { derivatives: true },
 });
 
 const AgenticBubble = ({
@@ -637,7 +639,7 @@ export default function Ver8_1() {
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
           /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: clamp(32px, 10vw, 48px);
+          --glass-radius: clamp(28px, 8vw, 36px);
           --glass-side: clamp(16px, 5.2vw, 24px);
           --glass-inner: clamp(20px, 5vw, 28px);
           --ui-gray: #E6EBEF; /* cooler gray for message bar */
@@ -693,7 +695,7 @@ export default function Ver8_1() {
             rgba(255,255,255,0.00) 16.666%,
             rgba(255,255,255,0.08) 30%,
             rgba(255,255,255,0.30) 66%,
-            rgba(255,255,255,0.56) 100%
+            rgba(255,255,255,0.70) 100%
           );
           border-color: rgba(255,255,255,0.16);
         }

@@ -476,159 +476,80 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
   );
 };
 
-export default function Ver8_1() {
-  // 초기 상태를 'completed'로 설정하여 블롭이 이미 커진 상태에서 시작
-  const [boosted, setBoosted] = useState(false);
-  const [phase, setPhase] = useState('idle');
-  const [popActive, setPopActive] = useState(false); // 타이핑 이후 표시
-  const boostTimeoutRef = useRef(null);
-  const settleTimeoutRef = useRef(null);
-  const popTimeoutRef = useRef(null);
-  const pulseTimeoutRef = useRef(null);
-  const calmTimeoutRef = useRef(null);
-  const bottomUiTimeoutRef = useRef(null);
-
-  // 타이핑 효과
-  const headingText = '친구와 함께라면 분위기 좋은 식당이 좋겠죠';
-  const [typedText, setTypedText] = useState('');
+export default function Ver9_2() {
+  // 배경 블롭은 유지
+  const [boosted] = useState(false);
+  // 2.js 전용 모달 로직: 타이핑 진행도에 따라 카드 높이 확장
+  const fullText =
+    "친구와 함께라면 ‘무월식탁’이라는 한식당이나 ‘피에프창’이라는 아시안 비스트로가 좋을 거예요\n둘 다 분위기도 좋고 음식 종류도 다양해서 선택지가 많습니다";
+  const [typed, setTyped] = useState("");
+  const [progress, setProgress] = useState(0); // 0~1, 전체 진행도
   const [typingDone, setTypingDone] = useState(false);
+  const cardRef = useRef(null);
+  const innerRef = useRef(null);
+  const [cardHeight, setCardHeight] = useState(56); // 실제 렌더 높이(px), 내용 기반
 
-  // 초기 마운트 시 popActive가 활성화되도록 설정
   useEffect(() => {
-    let idx = 0;
-    const speed = 60; // ms per char
-    const typer = setInterval(() => {
-      idx += 1;
-      setTypedText(headingText.slice(0, idx));
-      if (idx >= headingText.length) {
-        clearInterval(typer);
+    let i = 0;
+    const speed = 28; // ms/char
+    const timer = setInterval(() => {
+      i += 1;
+      const next = fullText.slice(0, i);
+      setTyped(next);
+      const p = Math.min(1, next.length / fullText.length);
+      setProgress(p);
+      if (i >= fullText.length) {
+        clearInterval(timer);
         setTypingDone(true);
-        // 타이핑 완료 후 모달 표시
-        setTimeout(() => setPhase('completed'), 300);
       }
     }, speed);
-    return () => clearInterval(typer);
+    return () => clearInterval(timer);
   }, []);
 
+  // 내용 기반으로 카드 높이 산출 (최소 높이 보장, 자동 확장)
   useEffect(() => {
-    if (popTimeoutRef.current) {
-      clearTimeout(popTimeoutRef.current);
-    }
-    if (phase === 'completed') {
-      // completed phase에서는 이미 popActive가 true이므로 타임아웃 없이 유지
-      if (!popActive) {
-        setPopActive(true);
-      }
-    } else {
-      setPopActive(false);
-    }
-    return () => {
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
+    const MIN_H = 56;
+    const update = () => {
+      if (!innerRef.current) return;
+      const h = innerRef.current.scrollHeight;
+      setCardHeight(Math.max(MIN_H, h));
     };
-  }, [phase, popActive]);
-
-  // 모달 이후 하단 UI 페이드인
-  const [bottomVisible, setBottomVisible] = useState(false);
-  useEffect(() => {
-    if (bottomUiTimeoutRef.current) clearTimeout(bottomUiTimeoutRef.current);
-    if (popActive) {
-      bottomUiTimeoutRef.current = setTimeout(() => setBottomVisible(true), 900);
-    } else {
-      setBottomVisible(false);
-    }
-    return () => {
-      if (bottomUiTimeoutRef.current) clearTimeout(bottomUiTimeoutRef.current);
-    };
-  }, [popActive]);
-
-  useEffect(() => {
-    if (pulseTimeoutRef.current) {
-      clearTimeout(pulseTimeoutRef.current);
-    }
-    if (calmTimeoutRef.current) {
-      clearTimeout(calmTimeoutRef.current);
-    }
-    if (popActive) {
-      pulseTimeoutRef.current = setTimeout(() => {
-        setBoosted(true);
-        calmTimeoutRef.current = setTimeout(() => {
-          setBoosted(false);
-        }, 2800);
-      }, 1000);
-    } else {
-      setBoosted(false);
-    }
-    return () => {
-      if (pulseTimeoutRef.current) {
-        clearTimeout(pulseTimeoutRef.current);
-      }
-      if (calmTimeoutRef.current) {
-        clearTimeout(calmTimeoutRef.current);
-      }
-    };
-  }, [popActive]);
-
-  useEffect(() => {
-    return () => {
-      if (boostTimeoutRef.current) {
-        clearTimeout(boostTimeoutRef.current);
-      }
-      if (settleTimeoutRef.current) {
-        clearTimeout(settleTimeoutRef.current);
-      }
-      if (popTimeoutRef.current) {
-        clearTimeout(popTimeoutRef.current);
-      }
-      if (pulseTimeoutRef.current) {
-        clearTimeout(pulseTimeoutRef.current);
-      }
-      if (calmTimeoutRef.current) {
-        clearTimeout(calmTimeoutRef.current);
-      }
-    };
-  }, []);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [typed, progress]);
 
   return (
-    <div className={`container container--bright ${bottomVisible ? 'container--bottom-visible' : ''}`}>
-      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
-      <div className="top-heading" aria-hidden={false}>
-        {typedText}
-      </div>
-      {popActive && (
-        <div className="glass-overlay glass-overlay--visible" aria-hidden={!popActive}>
-          <div className="glass-modal">
-            <div className="glass-content">
-              <div
-                className="photo"
-                role="img"
-                aria-label="딤섬과 음식이 놓인 테이블"
-              />
-              <div className="text">
-                <p>
-                  <span className="hl">딤딤섬</span> 에서는 홍콩 딤섬을 맛볼 수 있고,
-                </p>
-                <p>
-                  <span className="hl">무월식탁</span> 에서는 정갈하게 차려낸
-                  <br />한식을 즐기실 수 있답니다
-                </p>
-                <p className="small">두 곳 모두 깔끔하고 모던한 분위기로 인기가 많아요</p>
-              </div>
+    <div className="container container--bright">
+      <CanvasBackground boosted={false} phase="completed" popActive={true} />
+      <div className="brand-top">Sori</div>
+
+      {/* 전용 모달 */}
+      <div className="modal2-wrap">
+        <div className="modal2-card" ref={cardRef} style={{ height: cardHeight }}>
+          <div className="modal2-inner" ref={innerRef}>
+            <div className="modal2-text">
+            {typed.split('\n').map((line, idx) => (
+              <p key={idx}>{line}</p>
+            ))}
             </div>
+            <div className={`modal2-photo ${typingDone ? 'is-in' : ''}`} aria-hidden />
           </div>
         </div>
-      )}
-      <div className={`suggestions ${bottomVisible ? 'suggestions--visible' : ''}`} aria-hidden={!bottomVisible}>
-        <div className="chip chip--strong">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-        <div className="chip chip--medium">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
-        <div className="chip chip--light">컨퍼런스를 관람하며 쉬기 좋은 곳</div>
       </div>
-      <div className={`message-bar ${bottomVisible ? 'message-bar--visible' : ''}`} role="form" aria-label="메시지 입력" aria-hidden={!bottomVisible}>
+
+      {/* 하단 제안/메시지 바는 유지 */}
+      <div className="suggestions suggestions--visible no-anim" aria-hidden={false}>
+        <div className="chip chip--strong">조용히 작업할 수 있는 카페를 찾고 있어</div>
+        <div className="chip chip--medium">친구와 함께 먹기 좋은 식당을 추천해줘</div>
+        <div className="chip chip--light">즐길 거리가 많은 핫플레이스를 알려줘</div>
+      </div>
+      <div className="message-bar message-bar--visible" role="form" aria-label="메시지 입력">
         <button type="button" className="msg-btn add" aria-label="추가">＋</button>
         <input className="msg-input" type="text" placeholder="메시지 보내기..." />
         <button type="button" className="msg-btn voice" aria-label="음성">🎤</button>
       </div>
+
       <style jsx>{`
         .container {
           position: relative;
@@ -639,11 +560,12 @@ export default function Ver8_1() {
           transition: background 2s ease;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
           /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: 22px;
+          --glass-radius: clamp(28px, 8vw, 36px);
           --glass-side: clamp(16px, 5.2vw, 24px);
           --glass-inner: clamp(20px, 5vw, 28px);
           --ui-gray: #E6EBEF; /* cooler gray for message bar */
           --chip-offset: clamp(8px, 2vw, 14px);
+          --chip-gap: 12px; /* for animation math only; layout gap stays as-is */
           --mb-h: clamp(44px, 7.2vh, 52px);
           --mb-bottom: clamp(36px, 6vh, 56px);
           /* Safe-area aware margins (for iOS notch, etc.) */
@@ -657,6 +579,8 @@ export default function Ver8_1() {
           --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
           /* compensate for asymmetric safe-areas to keep true center aligned */
           --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
+          /* minimum breathing space between header and modal (responsive) */
+          --header-gap: clamp(5px, 1.6vh, 12px);
           /* Small right shift for suggestions */
           --suggest-shift: clamp(6px, 1.6vw, 14px);
           --blob-tint: rgba(118, 212, 255, 0.12);
@@ -667,206 +591,86 @@ export default function Ver8_1() {
         :global(html), :global(body), :global(input), :global(button), :global(textarea) {
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
         }
-        .top-heading {
+        .brand-top {
           position: fixed;
-          top: clamp(36px, 8vh, 80px);
+          top: 10px;
           left: 50%;
           transform: translateX(-50%);
-          width: calc(100% - var(--side-left) - var(--side-right));
-          color: #2e3d46;
+          color: #7f5bff;
           font-weight: 700;
-          font-size: 16px;
-          text-align: center;
-          line-height: 1.4;
-          z-index: 60;
-          text-shadow: 0 12px 30px rgba(0,0,0,0.06);
+          font-size: 13px;
+          z-index: 80;
         }
         .container--bright {
           background: radial-gradient(circle at 30% 20%, #fffeff 0%, #fff7fb 38%, #fbeff5 100%);
         }
-        /* When bottom UI is visible, soften the modal slightly */
-        .container--bottom-visible .glass-content {
-          background: linear-gradient(
-            180deg,
-            rgba(255,255,255,0.00) 0%,
-            rgba(255,255,255,0.00) 16.666%,
-            rgba(255,255,255,0.08) 30%,
-            rgba(255,255,255,0.30) 66%,
-            rgba(255,255,255,0.70) 100%
-          );
-          border-color: rgba(255,255,255,0.16);
-        }
-        .glass-overlay {
+
+        /* ============ v9/2 전용 모달 ============ */
+        .modal2-wrap {
           position: fixed;
           inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          /* Keep vertical space flexible, lock horizontal to match reference */
-          padding: clamp(28px, 10vh, 64px) 0 clamp(24px, 10vh, 56px) 0;
+          display: grid;
+          place-items: start center;
+          padding-top: calc(clamp(28px, 10vh, 64px) + var(--header-gap));
           pointer-events: none;
           z-index: 90;
         }
-        .glass-overlay--visible {
-          pointer-events: auto;
-        }
-        .glass-modal {
-          /* Hard-match message-bar horizontal margins */
-          --modal-w: calc(var(--frame-width) - (var(--modal-extra-inset) * 2));
-          width: var(--modal-w);
-          margin-left: calc(var(--side-left) + var(--modal-shrink) + var(--modal-extra-inset) - var(--center-fix));
-          margin-right: calc(var(--side-right) + var(--modal-shrink) + var(--modal-extra-inset) + var(--center-fix));
-          /* Slightly wider card to avoid overly tall feel */
-          aspect-ratio: 164 / 190;
-          display: grid;
-          place-items: center;
-          transform: translateY(-10vh);
-          pointer-events: none;
-          position: relative;
-          z-index: 1;
-        }
-        .glass-modal, .glass-content { box-sizing: border-box; }
-        /* Top scanline that draws once on mount */
-        .glass-modal::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: rgba(255,255,255,0.75);
-          box-shadow: 0 0 8px rgba(255,255,255,0.38);
-          opacity: 0;
-          transform-origin: left center;
-          transform: scaleX(0);
-          pointer-events: none;
-        }
-        .glass-overlay--visible .glass-modal::before {
-          animation: drawLine 600ms ease-out forwards;
-        }
-        .glass-content {
-          /* scale inner layout proportionally to modal width (base ≈ 420px) */
-          --modal-scale: clamp(0.84, calc(var(--modal-w) / 420px), 1.20);
-          display: grid;
-          gap: calc(20px * var(--modal-scale));
-          padding: calc(26px * var(--modal-scale)) var(--glass-inner) calc(26px * var(--modal-scale));
-          border-radius: var(--glass-radius);
-          transform: scaleY(0.02);
-          transform-origin: top center;
-          will-change: transform;
-          /* Softer, more transparent glass: top 30% → bottom 70% white */
-          background: linear-gradient(
-            180deg,
-            rgba(255,255,255,0.00) 0%,
-            rgba(255,255,255,0.00) 16.666%,
-            rgba(255,255,255,0.12) 30%,
-            rgba(255,255,255,0.38) 66%,
-            rgba(255,255,255,0.70) 100%
-          );
+        .modal2-card {
+          --w: calc(var(--frame-width));
+          width: var(--w);
+          border-radius: calc(var(--glass-radius) + 12px);
+          background: linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.70) 100%);
           border: 0.5px solid rgba(255,255,255,0.20);
           box-shadow:
             0 28px 48px rgba(22, 42, 58, 0.10),
-            inset 0 0.5px 0 rgba(255,255,255,0.18),
-            inset 0 -12px 36px rgba(255,255,255,0.05);
-          backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
-          -webkit-backdrop-filter: blur(40px) saturate(0.9) brightness(1.04) contrast(0.96);
-          /* Desaturate inner contents slightly for a washed, matte look */
-          filter: saturate(0.92);
-          text-align: center;
-          color: #1f2640;
-          position: relative;
+            inset 0 0.5px 0 rgba(255,255,255,0.18);
+          backdrop-filter: blur(38px) saturate(0.95);
+          -webkit-backdrop-filter: blur(38px) saturate(0.95);
           overflow: hidden;
-        }
-        .glass-overlay--visible .glass-content {
-          animation: receiptPrint 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .glass-content::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          /* Glossy sheen, but toned down for more transparency */
-          background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 55%, rgba(255,255,255,0.0) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.06;
-          pointer-events: none;
-        }
-        .glass-content::after {
-          content: '';
-          position: absolute;
-          inset: -28%;
-          background:
-            radial-gradient(circle at 18% 14%, rgba(255,255,255,0.08), transparent 60%),
-            radial-gradient(circle at 86% 78%, rgba(118,212,255,0.035), transparent 70%),
-            rgba(255,255,255,0.010);
-          opacity: 0.07;
-          filter: blur(50px) saturate(1.0);
-          pointer-events: none;
-        }
-        .photo {
-          width: 100%;
-          aspect-ratio: 4 / 3;
-          border-radius: calc(var(--glass-radius) - (12px * var(--modal-scale)));
-          background:
-            url('https://images.unsplash.com/photo-1604908177522-b4f0c19e6bd0?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
-            rgba(255,255,255,0.10);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.48);
-          margin-top: calc(8px * var(--modal-scale));
-          margin-bottom: calc(20px * var(--modal-scale));
-        }
-        .text {
           display: grid;
-          gap: calc(14px * var(--modal-scale));
-          color: #204a53;
-          font-weight: 700;
-          letter-spacing: 0;
-          max-width: 30ch;
-          margin: 0 auto;
-          text-align: left;
+          grid-template-rows: auto 1fr;
+          align-items: start;
+          pointer-events: auto;
+          transition: height 140ms ease;
         }
-        .text p { margin: 0; line-height: 2.0; }
-        .text .small {
-          color: #2b5b64;
-          opacity: 0.84;
-          font-weight: 500;
-          margin-top: clamp(12px, 2.8vw, 18px);
-          text-align: left;
-          text-indent: 0;
-          white-space: normal;
+        .modal2-inner {
+          width: 100%;
+          box-sizing: border-box;
+          padding: var(--glass-inner);
+          display: grid;
+          gap: var(--glass-inner);
+        }
+        .modal2-text {
+          padding: 0;
+          color: #1f2640;
+          font-weight: 700;
+          text-align: center;
           word-break: keep-all;
         }
-        .hl {
-          display: inline-block;
-          padding: 0.08em 0.68em;
-          border-radius: 999px;
-          background: linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.72) 100%);
-          border: 1px solid rgba(255,255,255,1);
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,1),
-            0 3px 10px rgba(16,24,40,0.12);
-          backdrop-filter: blur(12px) saturate(1.25);
-          -webkit-backdrop-filter: blur(12px) saturate(1.25);
-          color: #0f3a41;
-          position: relative;
-          overflow: visible;
+        .modal2-text p { margin: 6px 0; line-height: 1.72; text-indent: 1em; }
+        .modal2-photo {
+          margin: 0 var(--glass-inner) 0;
+          border-radius: calc(var(--glass-radius) + 12px - 16px);
+          background:
+            url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop') center / cover no-repeat,
+            rgba(255,255,255,0.10);
+          height: 0; /* 사진 등장 전 공간 차지하지 않음 */
+          opacity: 0;
+          transform: translateY(12px) scale(0.98);
+          transition: opacity 240ms ease, transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
         }
-        /* opacity-only glow using a soft overlay */
-        .hl::before {
-          content: '';
-          position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.30) 100%);
-          mix-blend-mode: screen;
-          opacity: 0.18;
-          animation: hlOpacityGlow 2600ms ease-in-out infinite;
-          pointer-events: none;
+        .modal2-photo.is-in {
+          height: auto;
+          aspect-ratio: 4 / 3;
+          margin: 0;
+          opacity: 1;
+          transform: translateY(0) scale(1);
         }
-        @keyframes hlOpacityGlow {
-          0%, 100% { opacity: 0.16; }
-          50% { opacity: 0.32; }
-        }
+
+        /* 하단 예시칩은 타이핑 중에도 정지 */
+        .no-anim { transform: none !important; transition: none !important; }
+        .no-anim .chip { animation: none !important; }
+
         @keyframes receiptPrint {
           0% { transform: scaleY(0.02); }
           70% { transform: scaleY(1.04); }
@@ -881,7 +685,6 @@ export default function Ver8_1() {
           margin: 0;
           font-size: clamp(18px, 4.6vw, 22px);
           font-weight: 800;
-          text-wrap: balance;
         }
         .glass-content p {
           margin: 0;
@@ -918,9 +721,9 @@ export default function Ver8_1() {
           left: calc(var(--side-left) + var(--modal-shrink) - var(--center-fix));
           right: calc(var(--side-right) + var(--modal-shrink) + var(--center-fix));
           transform: none;
-          bottom: calc(var(--mb-bottom) + var(--mb-h) + 18px);
+          bottom: calc(var(--mb-bottom) + var(--mb-h) + 10px);
           display: grid;
-          gap: 10px;
+          gap: 12px; /* keep original spacing */
           width: auto;
           z-index: 55; /* above modal, below message bar */
           pointer-events: none;
@@ -933,52 +736,59 @@ export default function Ver8_1() {
         .chip {
           justify-self: start;
           max-width: 100%;
-          padding: clamp(9px, 2.6vw, 12px) clamp(12px, 3.2vw, 16px);
+          padding: clamp(12px, 3.2vw, 14px) clamp(16px, 4vw, 18px);
           border-radius: 999px;
-          border: 0.5px solid rgba(190,225,255,0.45);
-          background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+          border: 0.5px solid rgba(255,255,255,0.34);
+          background: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.18) 100%);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.78),
             0 6px 16px rgba(40, 80, 96, 0.08);
           backdrop-filter: blur(14px) saturate(1.08);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.54);
           font-weight: 500;
-          font-size: 12px;
+          font-size: 14px;
           pointer-events: auto;
           white-space: nowrap;
+          /* animate visually without altering layout sizing/gap */
+          animation: chipDrop 700ms cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
         }
-        /* Make all chips a light blue, matching blob tint */
+        .suggestions .chip:nth-child(2) { animation-delay: 720ms; }
+        .suggestions .chip:nth-child(3) { animation-delay: 1440ms; }
+        @keyframes chipDrop {
+          0%   { transform: translateY(-120%); opacity: 0; }
+          60%  { opacity: 1; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        /* Press chips slightly with blob-tint; upper chips are more "pressed" */
         .suggestions .chip:nth-child(1) {
-          border-color: rgba(190,225,255,0.45);
+          border-color: rgba(255,255,255,0.30);
           background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+            radial-gradient(120% 90% at 15% 15%, rgba(118,212,255,0.28), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
+            inset 0 1px 0 rgba(255,255,255,0.62),
             0 5px 12px rgba(40, 80, 96, 0.06);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.58);
         }
         .suggestions .chip:nth-child(2) {
-          border-color: rgba(190,225,255,0.45);
+          border-color: rgba(255,255,255,0.28);
           background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+            radial-gradient(120% 80% at 80% 0%, rgba(118,212,255,0.20), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.16) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
+            inset 0 1px 0 rgba(255,255,255,0.70),
             0 6px 14px rgba(40, 80, 96, 0.07);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.56);
         }
         .suggestions .chip:nth-child(3) {
-          border-color: rgba(190,225,255,0.45);
+          border-color: rgba(255,255,255,0.26);
           background:
-            radial-gradient(120% 90% at 20% 10%, rgba(118,212,255,0.20), transparent 60%),
-            linear-gradient(180deg, rgba(228,244,255,0.46) 0%, rgba(210,236,255,0.22) 100%);
+            radial-gradient(120% 80% at 85% 0%, rgba(118,212,255,0.12), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.68),
+            inset 0 1px 0 rgba(255,255,255,0.72),
             0 6px 15px rgba(40, 80, 96, 0.07);
-          color: rgba(34,66,92,0.58);
+          color: rgba(56,65,85,0.54);
         }
         .chip--medium {
           border-color: rgba(255,255,255,0.32);
@@ -1048,4 +858,5 @@ export default function Ver8_1() {
     </div>
   );
 }
+
 
