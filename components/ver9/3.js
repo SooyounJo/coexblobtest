@@ -340,7 +340,8 @@ const AgenticBubble = ({
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
     const boostTarget = boosted ? 1 : 0;
-    const boostLerp = boosted ? 0.14 : 0.04;
+    // boost 감소를 매우 느리게 - waveLevel이 0에 가까워질 때까지 부드럽게 유지
+    const boostLerp = boosted ? 0.14 : 0.008;
     boostValueRef.current = THREE.MathUtils.lerp(boostValueRef.current, boostTarget, boostLerp);
     if (material.uniforms.boost != null) {
       material.uniforms.boost.value = boostValueRef.current;
@@ -387,7 +388,8 @@ const Scene = ({ phase, centered = false, waving = false, waveLevel = 0 }) => {
 
   const topOpacityTarget = 1;
   const topScaleTarget = phase === 'idle' ? 1.18 : 1;
-  const variant = (waving || waveLevel > 0.05) ? 'water' : 'default';
+  // waveLevel이 매우 작아질 때만 variant 변경 - 끊김 최소화
+  const variant = waveLevel > 0.005 ? 'water' : 'default';
 
   // Smooth group movement (one blob moving)
   const groupRef = useRef(null);
@@ -406,7 +408,7 @@ const Scene = ({ phase, centered = false, waving = false, waveLevel = 0 }) => {
   return (
     <group ref={groupRef} renderOrder={1000}>
       <AgenticBubble
-        boosted={waving}
+        boosted={waveLevel > 0.001}
         position={topPosition}
         targetPosition={topPosition}
         variant={variant}
@@ -417,7 +419,7 @@ const Scene = ({ phase, centered = false, waving = false, waveLevel = 0 }) => {
         scaleLerp={0.16}
         paletteTarget={Math.max(0, Math.min(0.85, waveLevel))}
         paletteLerp={0.14}
-        breathe={waveLevel > 0.05}
+        breathe={waveLevel > 0.01}
       />
     </group>
   );
@@ -516,19 +518,29 @@ export default function Ver9_1() {
     }, 1000 + 400 + 280 + 500 + 600);
     
     const t4 = setTimeout(() => {
-      // 5단계: 천천히 감소 (0.32 → 0.12) - 더 부드럽게
-      tweenWave(0.12, 1100, 'easeOutQuint');
+      // 5단계: 천천히 감소 (0.32 → 0.15) - 더 부드럽게
+      tweenWave(0.15, 1200, 'easeOutQuart');
     }, 1000 + 400 + 280 + 500 + 600 + 850);
     
+    const t4_5 = setTimeout(() => {
+      // 5.5단계: 더 천천히 감소 (0.15 → 0.08)
+      tweenWave(0.08, 1400, 'easeOutQuint');
+    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1200);
+    
     const t5 = setTimeout(() => {
-      // 6단계: 매우 천천히 완전히 멈춤 (0.12 → 0.0) - 가장 부드럽게
-      tweenWave(0.0, 1800, 'easeOutExpo');
-    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1100);
+      // 6단계: 매우 천천히 감소 (0.08 → 0.03)
+      tweenWave(0.03, 1800, 'easeOutQuint');
+    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1200 + 1400);
     
     const t6 = setTimeout(() => {
-      // 웨이브가 거의 끝날 때 setWaving(false)
+      // 7단계: 완전히 멈춤 (0.03 → 0.0) - 가장 부드럽게
+      tweenWave(0.0, 2400, 'easeInOutSine');
+    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1200 + 1400 + 1800);
+    
+    const t7 = setTimeout(() => {
+      // waveLevel이 거의 0이 될 때 setWaving(false) - variant 전환 후 호출
       setWaving(false);
-    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1100 + 1700);
+    }, 1000 + 400 + 280 + 500 + 600 + 850 + 1200 + 1400 + 1800 + 2400 + 500);
     
     return () => {
       clearTimeout(t0);
@@ -537,8 +549,10 @@ export default function Ver9_1() {
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
+      clearTimeout(t4_5);
       clearTimeout(t5);
       clearTimeout(t6);
+      clearTimeout(t7);
       if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
     };
   }, []);

@@ -122,7 +122,7 @@ export function ModalContent({ fullText, speed = 28 }) {
           --w: calc(var(--frame-width));
           width: var(--w);
           border-radius: calc(var(--glass-radius) + 12px);
-          background: linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.70) 100%);
+          background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.70) 100%);
           border: 0.5px solid rgba(255,255,255,0.20);
           box-shadow:
             0 28px 48px rgba(22, 42, 58, 0.10),
