@@ -372,6 +372,7 @@ const AgenticBubble = ({
       material.uniforms.paletteMix.value = paletteRef.current;
     }
 
+
     if (meshRef.current) {
       const time = state.clock.getElapsedTime();
       const smoothFreq = breathe ? 0.28 : 0.18;
@@ -413,7 +414,7 @@ const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLe
   const groupYTarget = centered ? 0.0 : 0.8;
   useFrame(() => {
     if (groupRef.current) {
-      groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, groupYTarget, 0.08);
+      groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, groupYTarget, 0.06);
     }
   });
 
@@ -426,9 +427,9 @@ const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLe
         variant={variant}
         opacityTarget={topOpacityTarget}
         scaleTarget={topScaleTarget}
-        positionLerp={0.08}
+        positionLerp={0.07}
         opacityLerp={0.06}
-        scaleLerp={0.12}
+        scaleLerp={0.10}
         paletteTarget={Math.max(0, Math.min(0.7, waveLevel))}
         paletteLerp={0.12}
         breathe={waveLevel > 0.05}
@@ -523,10 +524,6 @@ export default function Ver9_1() {
     <div className="container container--bright">
       <CanvasBackground phase={phase} shrink={shrink} centered={centered} waving={waving} waveLevel={waveLevel} />
       <div className="status" role="status" aria-live="polite">생각 중이에요</div>
-      <div className="message-bar message-bar--visible" role="form" aria-label="메시지 입력">
-        <input className="msg-input" type="text" placeholder="메시지 보내기..." />
-        <button type="button" className="msg-btn voice" aria-label="음성">🎤</button>
-      </div>
       <style jsx>{`
         .container {
           position: relative;
@@ -571,72 +568,6 @@ export default function Ver9_1() {
           font-size: 18px;
           text-shadow: 0 10px 30px rgba(0,0,0,0.06);
           z-index: 50;
-        }
-        /* Message input bar */
-        :root {
-          --side: clamp(14px, 5.2vw, 22px);
-        }
-        .message-bar {
-          position: fixed;
-          width: calc(100% - var(--side) * 2);
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: clamp(24px, 6vh, 48px);
-          height: clamp(44px, 6.2vh, 52px);
-          display: grid;
-          grid-template-columns: 1fr auto;
-          align-items: center;
-          gap: 10px;
-          padding: 0 12px;
-          border-radius: 999px;
-          border: 0.5px solid rgba(255,255,255,0.66);
-          background: rgba(255,255,255,0.92);
-          box-shadow:
-            0 10px 30px rgba(16, 24, 40, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.85);
-          backdrop-filter: blur(10px) saturate(1.02);
-          -webkit-backdrop-filter: blur(10px) saturate(1.02);
-          z-index: 70;
-        }
-        .avatar {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #111316;
-          color: #fff;
-          display: grid;
-          place-items: center;
-          font-size: 14px;
-          font-weight: 700;
-        }
-        .msg-input {
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          color: #3d4356;
-          font-weight: 600;
-          outline: none;
-        }
-        .msg-input::placeholder {
-          color: rgba(60, 60, 72, 0.55);
-          font-weight: 500;
-        }
-        .msg-btn {
-          border: none;
-          background: transparent;
-          color: #6a6f86;
-          font-size: 18px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          transition: transform 160ms ease, background 160ms ease;
-        }
-        .msg-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(0,0,0,0.04);
         }
       `}</style>
     </div>

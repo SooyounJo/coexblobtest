@@ -151,6 +151,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
     boost: { value: 0 },
     globalAlpha: { value: 1 },
     paletteMix: { value: 0 },
+    dir: { value: new THREE.Vector2(0, 1) },
   },
   vertexShader: `
       uniform float time;
@@ -190,6 +191,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       uniform vec3 ringDir;
       uniform float globalAlpha;
       uniform float paletteMix;
+      uniform vec2 dir;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -216,7 +218,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         base=mix(base,lavender,smoothstep(0.0,0.45,1.0-topness));
         base=mix(base,deepLavender,smoothstep(-0.4,0.2,p.y)*0.42);
         float loopSec=12.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
-        float rippleIntensity = 1.0 + boost * 1.25;
+        float rippleIntensity = 1.0 + boost * 1.25; // 리플 강도 줄임
         float drop1=sin(time*2.0)*0.3+0.5; float drop2=sin(time*1.7+1.5)*0.25+0.5; float drop3=sin(time*2.3+3.1)*0.2+0.5;
         float dist1=length(vUv-vec2(0.2,drop1)); float dist2=length(vUv-vec2(-0.3,drop2)); float dist3=length(vUv-vec2(0.4,drop3));
         float ripple1=sin(dist1*18.0-time*8.4)*exp(-dist1*7.5)*0.08*rippleIntensity;
@@ -261,6 +263,20 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
         vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
         lit = mix(lit, paletteTint, paletteMix * 0.28);
+
+        // Directional outward wave: propagate along +dir from center
+        vec2 nd = normalize(dir);
+        float s = dot(p, nd);
+        float t = dot(p, vec2(-nd.y, nd.x));
+        // forward only (s>0), narrow lateral band, traveling phase
+        float forwardMask = smoothstep(0.0, 0.18, s);
+        float lateral = exp(-pow(t * 3.2, 2.0));
+        float dirPhase = s * mix(14.0, 22.0, boost) - time * mix(8.0, 14.0, boost);
+        float dirWave = sin(dirPhase);
+        float dirOut = forwardMask * lateral * dirWave * mix(0.18, 0.42, boost);
+        // tint the front slightly brighter/mintier as it moves outward
+        lit += vec3(0.10, 0.16, 0.22) * dirOut;
+
         vec3 V=vec3(0.0,0.0,1.0);
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
         vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
@@ -283,7 +299,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         float edgeBase = smoothstep(0.54, 0.30, r);
         float edgeGlow = softBlur(r - 0.36, 0.18);
         float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
-        float alpha = 0.8 * edgeFeather + fres * 0.16;
+        float alpha = 0.8 * edgeFeather + fres * 0.16 + abs(dirOut) * 0.05;
         alpha = clamp(alpha, 0.0, 0.95);
         gl_FragColor=vec4(lit,alpha * globalAlpha);
       }
@@ -399,7 +415,7 @@ const Scene = ({ phase, shrink = false, centered = false, waving = false, waveLe
         positionLerp={0.08}
         opacityLerp={0.06}
         scaleLerp={0.12}
-        paletteTarget={Math.max(0, Math.min(0.7, waveLevel))}
+        paletteTarget={Math.max(0, Math.min(0.85, waveLevel))}
         paletteLerp={0.12}
         breathe={waveLevel > 0.05}
       />
@@ -443,11 +459,22 @@ export default function Ver9_1() {
   const waveLevelRef = useRef(0);
   useEffect(() => { waveLevelRef.current = waveLevel; }, [waveLevel]);
   const tweenRef = useRef(null);
-  const tweenWave = (to, duration = 400) => {
+  const tweenWave = (to, duration = 400, easingType = 'easeInOut') => {
     if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
     const from = waveLevelRef.current;
     const start = performance.now();
-    const ease = (t) => 0.5 - 0.5 * Math.cos(Math.PI * t);
+    
+    // 다양한 easing 함수들
+    const easings = {
+      easeInOut: (t) => 0.5 - 0.5 * Math.cos(Math.PI * t), // 기본 - 가장 부드러운
+      easeIn: (t) => t * t, // 천천히 시작
+      easeOut: (t) => 1 - (1 - t) * (1 - t), // 천천히 끝
+      easeInOutCubic: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // 부드러운 가속/감속
+      easeInOutQuart: (t) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2, // 더 부드러운
+      easeOutQuart: (t) => 1 - Math.pow(1 - t, 4), // 매우 부드러운 감속
+    };
+    
+    const ease = easings[easingType] || easings.easeInOut;
     const step = (now) => {
       const t = Math.min(1, (now - start) / duration);
       setWaveLevel(from + (to - from) * ease(t));
@@ -457,34 +484,34 @@ export default function Ver9_1() {
   };
 
   useEffect(() => {
-    const t1 = setTimeout(() => {
-      setCentered(true); // 1) 원래 자리에서 내려와 중앙으로
+    // 부드러운 active wave: 천천히 시작 → 빠르게 상승 → 천천히 감소
+    const t0 = setTimeout(() => {
+      setWaving(true);
+      // 1단계: 천천히 시작 (0 → 0.25)
+      tweenWave(0.25, 400, 'easeIn');
     }, 1000);
+    const t1 = setTimeout(() => {
+      // 2단계: 빠르게 상승 (0.25 → 0.85) - 더 격렬한 웨이브
+      tweenWave(0.85, 280, 'easeOut');
+    }, 1000 + 400);
+    const t1_5 = setTimeout(() => {
+      // 2.5단계: 최고점에서 잠시 유지 (0.85 유지)
+      // 유지만 하므로 tweenWave 호출 안 함
+    }, 1000 + 400 + 280);
     const t2 = setTimeout(() => {
-      setShrink(true);   // 2) 작아지고
-      tweenWave(0.4, 300); // 축소 도입부: 약한 웨이브
-    }, 1400);
+      // 3단계: 매우 긴 부드러운 감소 (0.85 → 0.0) - 하나의 긴 트랜지션으로 자연스럽게
+      tweenWave(0.0, 3200, 'easeOutQuart'); // 매우 긴 시간으로 부드럽게 감소
+    }, 1000 + 400 + 280 + 500); // 최고점에서 500ms 유지 후 감소
     const t3 = setTimeout(() => {
-      setWaving(true);   // 3) 웨이브 시작
-      tweenWave(0.7, 400); // 웨이브 강하게
-    }, 1600);
-    const t4 = setTimeout(() => {
-      setWaving(false);  // 3초 웨이브 종료
-      tweenWave(0.0, 500); // 부드럽게 잔향 제거
-    }, 1600 + 3000);
-    const t5 = setTimeout(() => {
-      setShrink(false);  // 4) 중앙 그대로 커지고
-    }, 1600 + 3000 + 150);
-    const t6 = setTimeout(() => {
-      setCentered(false); // 5) 원래 자리로 이동
-    }, 1600 + 3000 + 850);
+      // 웨이브가 거의 끝날 때 setWaving(false)
+      setWaving(false);
+    }, 1000 + 400 + 280 + 500 + 3000); // 0.0에 거의 도달한 후에만 false
     return () => {
+      clearTimeout(t0);
       clearTimeout(t1);
+      clearTimeout(t1_5);
       clearTimeout(t2);
       clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
-      clearTimeout(t6);
       if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
     };
   }, []);
@@ -493,10 +520,6 @@ export default function Ver9_1() {
     <div className="container container--bright">
       <CanvasBackground phase={phase} shrink={shrink} centered={centered} waving={waving} waveLevel={waveLevel} />
       <div className="status" role="status" aria-live="polite">생각 중이에요</div>
-      <div className="message-bar message-bar--visible" role="form" aria-label="메시지 입력">
-        <input className="msg-input" type="text" placeholder="메시지 보내기..." />
-        <button type="button" className="msg-btn voice" aria-label="음성">🎤</button>
-      </div>
       <style jsx>{`
         .container {
           position: relative;
@@ -541,72 +564,6 @@ export default function Ver9_1() {
           font-size: 18px;
           text-shadow: 0 10px 30px rgba(0,0,0,0.06);
           z-index: 50;
-        }
-        /* Message input bar */
-        :root {
-          --side: clamp(14px, 5.2vw, 22px);
-        }
-        .message-bar {
-          position: fixed;
-          width: calc(100% - var(--side) * 2);
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: clamp(24px, 6vh, 48px);
-          height: clamp(44px, 6.2vh, 52px);
-          display: grid;
-          grid-template-columns: 1fr auto;
-          align-items: center;
-          gap: 10px;
-          padding: 0 12px;
-          border-radius: 999px;
-          border: 0.5px solid rgba(255,255,255,0.66);
-          background: rgba(255,255,255,0.92);
-          box-shadow:
-            0 10px 30px rgba(16, 24, 40, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.85);
-          backdrop-filter: blur(10px) saturate(1.02);
-          -webkit-backdrop-filter: blur(10px) saturate(1.02);
-          z-index: 70;
-        }
-        .avatar {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #111316;
-          color: #fff;
-          display: grid;
-          place-items: center;
-          font-size: 14px;
-          font-weight: 700;
-        }
-        .msg-input {
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          color: #3d4356;
-          font-weight: 600;
-          outline: none;
-        }
-        .msg-input::placeholder {
-          color: rgba(60, 60, 72, 0.55);
-          font-weight: 500;
-        }
-        .msg-btn {
-          border: none;
-          background: transparent;
-          color: #6a6f86;
-          font-size: 18px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          transition: transform 160ms ease, background 160ms ease;
-        }
-        .msg-btn:hover {
-          transform: translateY(-2px);
-          background: rgba(0,0,0,0.04);
         }
       `}</style>
     </div>

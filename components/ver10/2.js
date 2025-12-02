@@ -151,6 +151,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
     boost: { value: 0 },
     globalAlpha: { value: 1 },
     paletteMix: { value: 0 },
+    dir: { value: new THREE.Vector2(0, 1) },
   },
   vertexShader: `
       uniform float time;
@@ -190,6 +191,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       uniform vec3 ringDir;
       uniform float globalAlpha;
       uniform float paletteMix;
+      uniform vec2 dir;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -261,6 +263,20 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
         vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
         lit = mix(lit, paletteTint, paletteMix * 0.28);
+
+        // Directional outward wave: propagate along +dir from center
+        vec2 nd = normalize(dir);
+        float s = dot(p, nd);
+        float t = dot(p, vec2(-nd.y, nd.x));
+        // forward only (s>0), narrow lateral band, traveling phase
+        float forwardMask = smoothstep(0.0, 0.18, s);
+        float lateral = exp(-pow(t * 3.2, 2.0));
+        float dirPhase = s * mix(14.0, 22.0, boost) - time * mix(8.0, 14.0, boost);
+        float dirWave = sin(dirPhase);
+        float dirOut = forwardMask * lateral * dirWave * mix(0.18, 0.42, boost);
+        // tint the front slightly brighter/mintier as it moves outward
+        lit += vec3(0.10, 0.16, 0.22) * dirOut;
+
         vec3 V=vec3(0.0,0.0,1.0);
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
         vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
@@ -283,7 +299,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         float edgeBase = smoothstep(0.54, 0.30, r);
         float edgeGlow = softBlur(r - 0.36, 0.18);
         float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
-        float alpha = 0.8 * edgeFeather + fres * 0.16;
+        float alpha = 0.8 * edgeFeather + fres * 0.16 + abs(dirOut) * 0.05;
         alpha = clamp(alpha, 0.0, 0.95);
         gl_FragColor=vec4(lit,alpha * globalAlpha);
       }
@@ -299,6 +315,7 @@ const AgenticBubble = ({
   variant = 'default',
   opacityTarget = 1,
   scaleTarget = 1,
+  initialScale = null,
   positionLerp = 0.08,
   opacityLerp = 0.08,
   scaleLerp = 0.16,
@@ -313,13 +330,35 @@ const AgenticBubble = ({
   const meshRef = useRef(null);
   const boostValueRef = useRef(0);
   const opacityRef = useRef(opacityTarget);
-  const scaleRef = useRef(scaleTarget);
+  const scaleRef = useRef(initialScale !== null ? initialScale : scaleTarget);
   const paletteRef = useRef(paletteTarget);
   const targetPositionRef = useRef(new THREE.Vector3(...position));
+  const prevScaleTargetRef = useRef(scaleTarget);
+  const prevPositionRef = useRef([...position]);
 
   useEffect(() => {
     targetPositionRef.current.set(...targetPosition);
   }, [targetPosition[0], targetPosition[1], targetPosition[2]]);
+  
+  // initialScale이 변경되면 scaleRef를 즉시 시작값으로 설정하여 위치와 크기가 동시에 시작되도록
+  useEffect(() => {
+    if (initialScale !== null) {
+      scaleRef.current = initialScale;
+    }
+  }, [initialScale]);
+  
+  // position이 크게 변경되면 mesh의 위치를 즉시 업데이트하여 위치와 크기가 동시에 시작되도록
+  useEffect(() => {
+    const positionChanged = 
+      Math.abs(position[0] - prevPositionRef.current[0]) > 0.1 ||
+      Math.abs(position[1] - prevPositionRef.current[1]) > 0.1 ||
+      Math.abs(position[2] - prevPositionRef.current[2]) > 0.1;
+    
+    if (positionChanged && meshRef.current) {
+      meshRef.current.position.set(...position);
+      prevPositionRef.current = [...position];
+    }
+  }, [position[0], position[1], position[2]]);
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
@@ -362,28 +401,70 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ boosted, phase, popActive }) => {
+const Scene = ({ boosted, phase, popActive, isActiveTransitioning }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
   const spacing = 1.68;
 
   const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
-  // completed phase에서는 이미 상단으로 이동한 상태이므로 bottomStartPosition도 상단 위치로 설정
-  const bottomStartPosition = useMemo(() => 
-    phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0], 
-    [phase, spacing]
-  );
-  const bottomTargetPosition = useMemo(
-    () => (phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0]),
-    [phase, spacing],
-  );
+  
+  // 위치와 크기가 동시에 변경되도록 설정
+  // 액티브: 하단에서 시작 → 상단으로 올라가면서 커짐 (위치와 크기 동시 변경)
+  // 원상복구: 상단에서 시작 → 하단으로 내려오면서 작아짐 (위치와 크기 동시 변경)
+  const bottomStartPosition = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브 시작: 하단 위치에서 시작 (작은 크기)
+      return [0, -(spacing + 0.3), 0];
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구 시작: 상단 위치에서 시작 (큰 크기) - 내려오면서 작아짐
+      return [0, spacing + 0.3, 0];
+    }
+    // 기본: phase에 따라 설정
+    return phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0];
+  }, [phase, spacing, isActiveTransitioning]);
+  
+  const bottomTargetPosition = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브: 하단 → 상단으로 올라가면서 커짐
+      return [0, spacing + 0.3, 0];
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구: 상단 → 하단으로 내려오면서 작아짐
+      return [0, -(spacing + 0.3), 0];
+    }
+    // 기본: completed phase일 때만 상단 위치
+    return phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0];
+  }, [phase, spacing, isActiveTransitioning]);
 
   const topOpacityTarget = phase === 'idle' ? 1 : 1;
-  // Intro: start larger then settle smaller after typing completes
   const topScaleTarget = phase === 'idle' ? 1.18 : 1;
-  const bottomScaleTarget = popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
-  const bottomPositionLerp = phase === 'completed' ? 0.12 : 0.04;
-  const bottomScaleLerp = popActive ? 0.2 : 0.14;
+  
+  // 위치와 크기가 동시에 변경되도록 크기 설정
+  const bottomScaleStart = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브 시작: 작은 크기에서 시작 (1)
+      return 1;
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구 시작: 큰 크기에서 시작 (2.0) - 내려오면서 작아짐
+      return 2.0;
+    }
+    return phase === 'completed' ? 1.04 : 1;
+  }, [phase, isActiveTransitioning]);
+  
+  const bottomScaleTarget = useMemo(() => {
+    if (isActiveTransitioning === 'active') {
+      // 액티브: 올라가면서 동시에 커짐 (1 → 2.0)
+      return 2.0;
+    } else if (isActiveTransitioning === 'restore') {
+      // 원상복구: 내려오면서 동시에 작아짐 (2.0 → 1)
+      return 1;
+    }
+    return popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
+  }, [popActive, phase, isActiveTransitioning]);
+  
+  // 위치와 크기가 완전히 동시에 한번에 변경되도록 동일한 lerp 값 설정
+  const simultaneousLerp = isActiveTransitioning ? 0.85 : null;
+  const bottomPositionLerp = simultaneousLerp !== null ? simultaneousLerp : (phase === 'completed' ? 0.12 : 0.04);
+  const bottomScaleLerp = simultaneousLerp !== null ? simultaneousLerp : (popActive ? 0.2 : 0.14);
   const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
 
   return (
@@ -406,10 +487,11 @@ const Scene = ({ boosted, phase, popActive }) => {
         position={bottomStartPosition}
         targetPosition={bottomTargetPosition}
         variant={bottomVariant}
-        opacityTarget={phase === 'completed' ? 1 : 0}
+        opacityTarget={(phase === 'completed' || isActiveTransitioning) ? 1 : 0}
         scaleTarget={bottomScaleTarget}
+        initialScale={isActiveTransitioning ? bottomScaleStart : null}
         positionLerp={bottomPositionLerp}
-        opacityLerp={0.1}
+        opacityLerp={isActiveTransitioning ? 0.85 : 0.1}
         scaleLerp={bottomScaleLerp}
         paletteTarget={popActive ? 0.7 : 0.2}
         paletteLerp={0.16}
@@ -419,7 +501,7 @@ const Scene = ({ boosted, phase, popActive }) => {
   );
 };
 
-const CanvasBackground = ({ boosted, phase, popActive }) => {
+const CanvasBackground = ({ boosted, phase, popActive, isActiveTransitioning }) => {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -428,7 +510,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
+        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} isActiveTransitioning={isActiveTransitioning} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -451,12 +533,15 @@ export default function Ver8_1() {
   const [boosted, setBoosted] = useState(false);
   const [phase, setPhase] = useState('idle');
   const [popActive, setPopActive] = useState(false); // 타이핑 이후 표시
+  const [isActiveTransitioning, setIsActiveTransitioning] = useState(null); // 'active' | 'restore' | null
   const boostTimeoutRef = useRef(null);
   const settleTimeoutRef = useRef(null);
   const popTimeoutRef = useRef(null);
   const pulseTimeoutRef = useRef(null);
   const calmTimeoutRef = useRef(null);
   const bottomUiTimeoutRef = useRef(null);
+  const activeTransitionTimeoutRef = useRef(null);
+  const restoreTimeoutRef = useRef(null);
 
   // 타이핑 효과
   const headingText = '친구와 함께라면 분위기 좋은 식당이 좋겠죠';
@@ -484,20 +569,45 @@ export default function Ver8_1() {
     if (popTimeoutRef.current) {
       clearTimeout(popTimeoutRef.current);
     }
+    if (activeTransitionTimeoutRef.current) {
+      clearTimeout(activeTransitionTimeoutRef.current);
+    }
+    if (restoreTimeoutRef.current) {
+      clearTimeout(restoreTimeoutRef.current);
+    }
+    
     if (phase === 'completed') {
-      // completed phase에서는 이미 popActive가 true이므로 타임아웃 없이 유지
-      if (!popActive) {
-        setPopActive(true);
-      }
+      // 새로운 인터랙션 순서:
+      // 1. 먼저 액티브 상태로 위치와 크기를 한번에 변경
+      setIsActiveTransitioning('active');
+      
+      // 2. 액티브 상태 유지 후 원상복구
+      activeTransitionTimeoutRef.current = setTimeout(() => {
+        setIsActiveTransitioning('restore');
+        
+        // 3. 원상복구 후 popActive 활성화 (모달 표시)
+        restoreTimeoutRef.current = setTimeout(() => {
+          setIsActiveTransitioning(null);
+          setPopActive(true);
+        }, 400); // 원상복구 애니메이션 시간
+      }, 800); // 액티브 상태 유지 시간
     } else {
       setPopActive(false);
+      setIsActiveTransitioning(null);
     }
+    
     return () => {
       if (popTimeoutRef.current) {
         clearTimeout(popTimeoutRef.current);
       }
+      if (activeTransitionTimeoutRef.current) {
+        clearTimeout(activeTransitionTimeoutRef.current);
+      }
+      if (restoreTimeoutRef.current) {
+        clearTimeout(restoreTimeoutRef.current);
+      }
     };
-  }, [phase, popActive]);
+  }, [phase]);
 
   // 모달 이후 하단 UI 페이드인
   const [bottomVisible, setBottomVisible] = useState(false);
@@ -557,12 +667,18 @@ export default function Ver8_1() {
       if (calmTimeoutRef.current) {
         clearTimeout(calmTimeoutRef.current);
       }
+      if (activeTransitionTimeoutRef.current) {
+        clearTimeout(activeTransitionTimeoutRef.current);
+      }
+      if (restoreTimeoutRef.current) {
+        clearTimeout(restoreTimeoutRef.current);
+      }
     };
   }, []);
 
   return (
     <div className={`container container--bright ${bottomVisible ? 'container--bottom-visible' : ''}`}>
-      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} />
+      <CanvasBackground boosted={boosted} phase={phase} popActive={popActive} isActiveTransitioning={isActiveTransitioning} />
       <div className="top-heading" aria-hidden={false}>
         {typedText}
       </div>
