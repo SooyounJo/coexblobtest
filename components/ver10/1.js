@@ -535,9 +535,11 @@ export default function Ver9_2() {
           /* more purplish toward the bottom when darkening */
           background: radial-gradient(circle at 30% 20%,
             #fff2fb 0%,
-            #f1d9f6 32%,
-            #d6aee6 78%,
-            #b58ad2 100%);
+            #f3e2f7 32%,
+            #cfaedd 78%,
+            #a781c3 100%);
+          /* keep it noticeable but less "neon" */
+          filter: saturate(0.80) brightness(1.01);
           animation: v10PinkPulse 9s ease-in-out infinite;
           will-change: opacity;
         }
@@ -567,7 +569,7 @@ export default function Ver9_2() {
         }
         @keyframes v10PinkPulse {
           0%, 100% { opacity: 0; }
-          50% { opacity: 0.72; }
+          45%, 55% { opacity: 0.58; }
         }
         .glass-content h3 {
           margin: 0;
