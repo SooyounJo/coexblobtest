@@ -138,7 +138,7 @@ export function ModalContent({ fullText, speed = 28 }) {
           inset: 0;
           border-radius: inherit;
           pointer-events: none;
-          padding: 3px; /* stroke thickness (thicker) */
+          padding: 1.5px; /* stroke thickness */
           opacity: 0.82;
 
           /* iridescent layers: blob-cyan base + lilac + pink, all gently moving */
@@ -187,7 +187,7 @@ export function ModalContent({ fullText, speed = 28 }) {
           inset: 0;
           border-radius: inherit;
           pointer-events: none;
-          padding: 3px;
+          padding: 1.5px;
           opacity: 0.62;
           background: linear-gradient(135deg,
             var(--blob-tint, rgba(118, 212, 255, 0.12)) 0%,
