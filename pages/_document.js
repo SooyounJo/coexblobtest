@@ -4,12 +4,19 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* Google Fonts preconnect and Pretendard (if available) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@100..900&display=swap" rel="stylesheet" />
-        {/* Fallback to CDN for Pretendard Variable */}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
+        {/* Pretendard Variable 폰트 로드 (로컬 파일) */}
+        <style>{`
+          @font-face {
+            font-family: 'Pretendard Variable';
+            src: url('/PretendardVariable.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+          }
+          html, body, input, button, textarea {
+            font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
+          }
+        `}</style>
       </Head>
       <body>
         <Main />

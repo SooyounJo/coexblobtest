@@ -485,21 +485,14 @@ export default function Ver9_2() {
     "친구와 함께라면 ‘무월식탁’이라는 한식당이나 ‘피에프창’이라는 아시안 비스트로가 좋을 거예요\n둘 다 분위기도 좋고 음식 종류도 다양해서 선택지가 많습니다";
 
   return (
-    <div className="container container--bright">
+    <div className="container container--bright v10-1">
       <CanvasBackground boosted={false} phase="completed" popActive={true} />
 
       {/* 모달 로직: modal-logic.js로 분리 */}
       <ModalLogic fullText={fullText} speed={28} />
 
       <style jsx>{`
-        /* Pretendard Variable 폰트 로드 (public 폴더) */
-        @font-face {
-          font-family: 'Pretendard Variable';
-          src: url('/PretendardVariable.woff2') format('woff2');
-          font-weight: 100 900;
-          font-style: normal;
-          font-display: swap;
-        }
+        /* 폰트는 _document.js에서 전역으로 로드됨 */
         .container {
           position: relative;
           width: 100%;
@@ -507,6 +500,7 @@ export default function Ver9_2() {
           overflow: hidden;
           background: radial-gradient(circle at 30% 20%, #fffdfc 0%, #fff6fa 38%, #fdeff3 100%);
           transition: background 2s ease;
+          isolation: isolate;
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
           /* Responsive tokens for exact rounding and horizontal margins */
           --glass-radius: clamp(28px, 8vw, 36px);
@@ -529,6 +523,28 @@ export default function Ver9_2() {
           /* extra inset for main modal only (v2 can override) */
           --modal-extra-inset: 0px;
         }
+        /* v10/1: background pulse (light pink -> slightly darker -> light) every 3s */
+        .container::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0;
+          /* slightly purplish pink overlay for the pulse */
+          /* more purplish toward the bottom when darkening */
+          background: radial-gradient(circle at 30% 20%,
+            #fff2fb 0%,
+            #f1d9f6 32%,
+            #d6aee6 78%,
+            #b58ad2 100%);
+          animation: v10PinkPulse 9s ease-in-out infinite;
+          will-change: opacity;
+        }
+        /* Keep all real content above the pulsing overlay */
+        .container > :global(.canvas-wrapper) {
+          z-index: 1;
+        }
         /* enforce Pretendard Variable across the page */
         :global(html), :global(body), :global(input), :global(button), :global(textarea) {
           font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
@@ -548,6 +564,10 @@ export default function Ver9_2() {
           0%   { opacity: 0; transform: scaleX(0); }
           20%  { opacity: 1; }
           100% { opacity: 0; transform: scaleX(1); }
+        }
+        @keyframes v10PinkPulse {
+          0%, 100% { opacity: 0; }
+          50% { opacity: 0.72; }
         }
         .glass-content h3 {
           margin: 0;

@@ -341,14 +341,7 @@ function ModalWithImageFirst({ fullText, speed = 28 }) {
         </div>
       </div>
       <style jsx>{`
-        /* Pretendard Variable 폰트 로드 (public 폴더) */
-        @font-face {
-          font-family: 'Pretendard Variable';
-          src: url('/PretendardVariable.woff2') format('woff2');
-          font-weight: 100 900;
-          font-style: normal;
-          font-display: swap;
-        }
+        /* 폰트는 _document.js에서 전역으로 로드됨 */
         /* 모달에 필요한 CSS 변수 정의 */
         .modal2-wrapper {
           --glass-radius: clamp(28px, 8vw, 36px);
@@ -451,14 +444,7 @@ export default function Ver10_2() {
       <ModalWithImageFirst fullText={fullText} speed={28} />
 
       <style jsx>{`
-        /* Pretendard Variable 폰트 로드 (public 폴더) */
-        @font-face {
-          font-family: 'Pretendard Variable';
-          src: url('/PretendardVariable.woff2') format('woff2');
-          font-weight: 100 900;
-          font-style: normal;
-          font-display: swap;
-        }
+        /* 폰트는 _document.js에서 전역으로 로드됨 */
         .container {
           position: relative;
           width: 100%;
