@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ModalLogic } from './modal-logic';
 
+// NOTE: r3f Canvas는 SSR에서 깨지기 쉬워서 dynamic import로 감쌉니다.
 const Canvas = dynamic(() => import('@react-three/fiber').then((mod) => mod.Canvas), {
   ssr: false,
 });
@@ -152,6 +152,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
     boost: { value: 0 },
     globalAlpha: { value: 1 },
     paletteMix: { value: 0 },
+    dir: { value: new THREE.Vector2(0, 1) },
   },
   vertexShader: `
       uniform float time;
@@ -174,39 +175,9 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         vec2 u = f*f*(3.0-2.0*f);
         return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
       }
-      float waterDropEffect(vec3 pos, float time) {
-        float drop1 = sin(time * 2.0) * 0.3 + 0.5;
-        float drop2 = sin(time * 1.7 + 1.5) * 0.25 + 0.5;
-        float drop3 = sin(time * 2.3 + 3.1) * 0.2 + 0.5;
-        float dist1 = length(pos.xy - vec2(0.2, drop1));
-        float dist2 = length(pos.xy - vec2(-0.3, drop2));
-        float dist3 = length(pos.xy - vec2(0.4, drop3));
-        float ripple1 = sin(dist1 * 20.0 - time * 15.0) * exp(-dist1 * 8.0) * 0.02;
-        float ripple2 = sin(dist2 * 18.0 - time * 12.0) * exp(-dist2 * 6.0) * 0.015;
-        float ripple3 = sin(dist3 * 22.0 - time * 18.0) * exp(-dist3 * 7.0) * 0.018;
-        float shake1 = sin(time * 8.0) * exp(-dist1 * 5.0) * 0.01;
-        float shake2 = sin(time * 6.0 + 1.0) * exp(-dist2 * 4.0) * 0.008;
-        float shake3 = sin(time * 10.0 + 2.0) * exp(-dist3 * 6.0) * 0.012;
-        float intensity = 1.0 + boost * 1.35;
-        return (ripple1 + ripple2 + ripple3 + shake1 + shake2 + shake3) * intensity;
-      }
-      float waterSurfaceDeform(vec3 pos, float time) {
-        float wave1 = sin(pos.x * 3.0 + time * 2.0) * cos(pos.y * 2.5 + time * 1.5) * 0.015;
-        float wave2 = sin(pos.x * 5.0 + time * 3.0) * cos(pos.y * 4.0 + time * 2.5) * 0.008;
-        float wave3 = sin(pos.x * 7.0 + time * 4.0) * cos(pos.y * 6.0 + time * 3.5) * 0.005;
-        float noise1 = noise(pos.xy * 2.0 + time * 0.5) * 0.01;
-        float noise2 = noise(pos.yz * 1.5 + time * 0.7) * 0.008;
-        float noise3 = noise(pos.zx * 2.5 + time * 0.9) * 0.006;
-        float surfaceIntensity = 1.0 + boost * 1.1;
-        return (wave1 + wave2 + wave3 + noise1 + noise2 + noise3) * surfaceIntensity;
-      }
       void main() {
         vUv = uv;
         vec3 pos = position;
-        float dropEffect = waterDropEffect(pos, time);
-        pos += normal * dropEffect;
-        float surfaceDeform = waterSurfaceDeform(pos, time);
-        pos += normal * surfaceDeform;
         vNormal = normalize(normalMatrix * normal);
         vec4 worldPos = modelMatrix * vec4(pos, 1.0);
         vWorldPos = worldPos.xyz;
@@ -221,6 +192,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
       uniform vec3 ringDir;
       uniform float globalAlpha;
       uniform float paletteMix;
+      uniform vec2 dir;
       varying vec2 vUv;
       varying vec3 vNormal;
       float hash(vec2 p){ p = fract(p*vec2(123.34,345.45)); p += dot(p,p+34.345); return fract(p.x*p.y);}      
@@ -247,7 +219,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         base=mix(base,lavender,smoothstep(0.0,0.55,1.0-topness));
         base=mix(base,deepLavender,smoothstep(-0.36,0.2,p.y)*0.42);
         float loopSec=12.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
-        float rippleIntensity = 1.0 + boost * 1.25;
+        float rippleIntensity = 1.0 + boost * 1.25; // 리플 강도 줄임
         float drop1=sin(time*2.0)*0.3+0.5; float drop2=sin(time*1.7+1.5)*0.25+0.5; float drop3=sin(time*2.3+3.1)*0.2+0.5;
         float dist1=length(vUv-vec2(0.2,drop1)); float dist2=length(vUv-vec2(-0.3,drop2)); float dist3=length(vUv-vec2(0.4,drop3));
         float ripple1=sin(dist1*18.0-time*8.4)*exp(-dist1*7.5)*0.08*rippleIntensity;
@@ -292,6 +264,20 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         lit = mix(lit, centerYellow, centerGlow * mix(0.35,0.58,boost));
         vec3 paletteTint = mix(vec3(0.18,0.96,0.66), vec3(0.48,0.44,0.98), paletteMix);
         lit = mix(lit, paletteTint, paletteMix * 0.28);
+
+        // Directional outward wave: propagate along +dir from center
+        vec2 nd = normalize(dir);
+        float s = dot(p, nd);
+        float t = dot(p, vec2(-nd.y, nd.x));
+        // forward only (s>0), narrow lateral band, traveling phase
+        float forwardMask = smoothstep(0.0, 0.18, s);
+        float lateral = exp(-pow(t * 3.2, 2.0));
+        float dirPhase = s * mix(14.0, 22.0, boost) - time * mix(8.0, 14.0, boost);
+        float dirWave = sin(dirPhase);
+        float dirOut = forwardMask * lateral * dirWave * mix(0.18, 0.42, boost);
+        // tint the front slightly brighter/mintier as it moves outward
+        lit += vec3(0.10, 0.16, 0.22) * dirOut;
+
         vec3 V=vec3(0.0,0.0,1.0);
         float fres=pow(1.0 - max(dot(N,V),0.0), 2.4);
         vec3 rimGlow=vec3(0.18,0.88,0.64)*fres*mix(0.22,0.42,boost);
@@ -314,7 +300,7 @@ const createWaterShaderMaterial = () => new THREE.ShaderMaterial({
         float edgeBase = smoothstep(0.54, 0.30, r);
         float edgeGlow = softBlur(r - 0.36, 0.18);
         float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.22);
-        float alpha = 0.8 * edgeFeather + fres * 0.16;
+        float alpha = 0.8 * edgeFeather + fres * 0.16 + abs(dirOut) * 0.05;
         alpha = clamp(alpha, 0.0, 0.95);
         gl_FragColor=vec4(lit,alpha * globalAlpha);
       }
@@ -355,7 +341,8 @@ const AgenticBubble = ({
   useFrame((state, delta) => {
     material.uniforms.time.value += delta;
     const boostTarget = boosted ? 1 : 0;
-    const boostLerp = boosted ? 0.14 : 0.04;
+    // boost 감소를 매우 느리게 - waveLevel이 0에 가까워질 때까지 부드럽게 유지
+    const boostLerp = boosted ? 0.14 : 0.008;
     boostValueRef.current = THREE.MathUtils.lerp(boostValueRef.current, boostTarget, boostLerp);
     if (material.uniforms.boost != null) {
       material.uniforms.boost.value = boostValueRef.current;
@@ -393,64 +380,52 @@ const AgenticBubble = ({
   );
 };
 
-const Scene = ({ boosted, phase, popActive }) => {
+const Scene = ({ phase, centered = false, waving = false, waveLevel = 0 }) => {
   const { camera, viewport } = useThree();
   viewport.getCurrentViewport(camera, [0, 0, 0]);
-  const spacing = 1.68;
 
-  const topPosition = useMemo(() => [0, spacing + 0.3, 0], [spacing]);
-  // completed phase에서는 이미 상단으로 이동한 상태이므로 bottomStartPosition도 상단 위치로 설정
-  const bottomStartPosition = useMemo(() => 
-    phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0], 
-    [phase, spacing]
-  );
-  const bottomTargetPosition = useMemo(
-    () => (phase === 'completed' ? [0, spacing + 0.3, 0] : [0, -(spacing + 0.3), 0]),
-    [phase, spacing],
-  );
+  const topPosition = useMemo(() => [0, 0, 0], []);
 
-  const topOpacityTarget = phase === 'idle' ? 1 : 1;
-  // Intro: start larger then settle smaller after typing completes
+  const topOpacityTarget = 1;
   const topScaleTarget = phase === 'idle' ? 1.18 : 1;
-  const bottomScaleTarget = popActive ? 2.0 : phase === 'completed' ? 1.04 : 1;
-  const bottomPositionLerp = phase === 'completed' ? 0.12 : 0.04;
-  const bottomScaleLerp = popActive ? 0.2 : 0.14;
-  const bottomVariant = phase === 'transitioning' ? 'water' : 'default';
+  // waveLevel이 매우 작아질 때만 variant 변경 - 끊김 최소화
+  const variant = waveLevel > 0.005 ? 'water' : 'default';
+
+  // Smooth group movement (one blob moving)
+  const groupRef = useRef(null);
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(0, 0.8, 1);
+    }
+  }, []);
+  const groupYTarget = centered ? 0.0 : 0.8;
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, groupYTarget, 0.08);
+    }
+  });
 
   return (
-    <group position={[0, 0.8, 1]} renderOrder={1000}>
+    <group ref={groupRef} renderOrder={1000}>
       <AgenticBubble
-        boosted={false}
+        boosted={waveLevel > 0.001}
         position={topPosition}
         targetPosition={topPosition}
-        variant="default"
+        variant={variant}
         opacityTarget={topOpacityTarget}
         scaleTarget={topScaleTarget}
         positionLerp={0.08}
         opacityLerp={0.06}
-        scaleLerp={0.18}
-        paletteTarget={0}
-        paletteLerp={0.1}
-      />
-      <AgenticBubble
-        boosted={boosted}
-        position={bottomStartPosition}
-        targetPosition={bottomTargetPosition}
-        variant={bottomVariant}
-        opacityTarget={phase === 'completed' ? 1 : 0}
-        scaleTarget={bottomScaleTarget}
-        positionLerp={bottomPositionLerp}
-        opacityLerp={0.1}
-        scaleLerp={bottomScaleLerp}
-        paletteTarget={popActive ? 0.7 : 0.2}
-        paletteLerp={0.16}
-        breathe={popActive}
+        scaleLerp={0.16}
+        paletteTarget={Math.max(0, Math.min(0.85, waveLevel))}
+        paletteLerp={0.14}
+        breathe={waveLevel > 0.01}
       />
     </group>
   );
 };
 
-const CanvasBackground = ({ boosted, phase, popActive }) => {
+export default function BlobBackground9_3({ phase, centered, waving, waveLevel }) {
   return (
     <div className="canvas-wrapper" aria-hidden>
       <Canvas
@@ -459,7 +434,7 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
       >
         <ambientLight intensity={0.35} />
         <directionalLight position={[4, 6, 8]} intensity={0.8} />
-        <Scene boosted={boosted || phase === 'idle'} phase={phase} popActive={popActive} />
+        <Scene phase={phase} centered={centered} waving={waving} waveLevel={waveLevel} />
       </Canvas>
       <style jsx>{`
         .canvas-wrapper {
@@ -472,238 +447,6 @@ const CanvasBackground = ({ boosted, phase, popActive }) => {
           height: 100% !important;
           display: block;
         }
-      `}</style>
-    </div>
-  );
-};
-
-export default function Ver9_2() {
-  // 배경 블롭은 유지
-  const [boosted] = useState(false);
-  // 모달 로직: modal-logic.js로 분리됨
-  const fullText =
-    "친구와 함께라면 ‘무월식탁’이라는 한식당이나 ‘피에프창’이라는 아시안 비스트로가 좋을 거예요\n둘 다 분위기도 좋고 음식 종류도 다양해서 선택지가 많습니다";
-
-  return (
-    <div className="container container--bright v10-1">
-      <CanvasBackground boosted={false} phase="completed" popActive={true} />
-
-      {/* 모달 로직: modal-logic.js로 분리 */}
-      <ModalLogic fullText={fullText} speed={28} />
-
-      <style jsx>{`
-        /* 폰트는 _document.js에서 전역으로 로드됨 */
-        .container {
-          position: relative;
-          width: 100%;
-          height: 100vh;
-          overflow: hidden;
-          background: radial-gradient(circle at 30% 20%, #fffdfc 0%, #fff6fa 38%, #fdeff3 100%);
-          transition: background 2s ease;
-          isolation: isolate;
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-          /* Responsive tokens for exact rounding and horizontal margins */
-          --glass-radius: clamp(28px, 8vw, 36px);
-          --glass-side: clamp(16px, 5.2vw, 24px);
-          --glass-inner: clamp(20px, 5vw, 28px);
-          /* Safe-area aware margins (for iOS notch, etc.) */
-          --safe-l: env(safe-area-inset-left, 0px);
-          --safe-r: env(safe-area-inset-right, 0px);
-          --side-left: calc(var(--glass-side) + var(--safe-l));
-          --side-right: calc(var(--glass-side) + var(--safe-r));
-          /* Slightly shrink main modal width compared to message bar */
-          --modal-shrink: clamp(14px, 3.6vw, 28px);
-          /* unified frame width to avoid rounding mismatches across devices */
-          --frame-width: calc(100% - var(--side-left) - var(--side-right) - (var(--modal-shrink) * 2));
-          /* compensate for asymmetric safe-areas to keep true center aligned */
-          --center-fix: calc((var(--safe-l) - var(--safe-r)) / 2);
-          /* minimum breathing space between header and modal (responsive) */
-          --header-gap: clamp(5px, 1.6vh, 12px);
-          --blob-tint: rgba(118, 212, 255, 0.12);
-          /* extra inset for main modal only (v2 can override) */
-          --modal-extra-inset: 0px;
-
-          /* v10/1: bottom tint cycle (5s per step) */
-          --v10-pulse-0: #fff2fb; /* top */
-          --v10-pulse-1: #f3e2f7; /* mid */
-          --v10-pulse-2: #cfaedd; /* lower */
-          --v10-pulse-3: #a781c3; /* bottom */
-        }
-
-        /* Allow smooth/discrete animation of custom color props */
-        @property --v10-pulse-0 { syntax: '<color>'; inherits: true; initial-value: #fff2fb; }
-        @property --v10-pulse-1 { syntax: '<color>'; inherits: true; initial-value: #f3e2f7; }
-        @property --v10-pulse-2 { syntax: '<color>'; inherits: true; initial-value: #cfaedd; }
-        @property --v10-pulse-3 { syntax: '<color>'; inherits: true; initial-value: #a781c3; }
-
-        /* v10/1: background pulse + tint cycle (핑크 → 밝아짐 → 민트 → 밝아짐 → 핑크) */
-        .container::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          z-index: 0;
-          opacity: 0;
-          /* 항상 왼쪽이 더 진해지도록 "좌측 음영" 레이어를 추가 */
-          background:
-            linear-gradient(90deg,
-              /* 무채색(회색)으로 죽지 않게, 살짝 퍼플 틴트로 좌측 음영 */
-              rgba(64, 20, 104, 0.10) 0%,
-              rgba(64, 20, 104, 0.06) 34%,
-              rgba(64, 20, 104, 0.00) 68%,
-              rgba(64, 20, 104, 0.00) 100%),
-            /* 상단은 살짝 더 밝게(위쪽이 더 화사하게) */
-            linear-gradient(180deg,
-              /* 순백 라이트는 색을 씻어 회색빛이 나기 쉬워서, 아주 옅게 틴트 */
-              rgba(255, 230, 248, 0.14) 0%,
-              rgba(236, 246, 255, 0.06) 32%,
-              rgba(255, 255, 255, 0.00) 60%),
-            /* 하단 눌림을 "선"처럼 보이지 않게: 곡선 + 대각선 레이어로 유동형 느낌 */
-            radial-gradient(140% 48% at 18% 108%,
-              rgba(52, 18, 86, 0.00) 58%,
-              rgba(52, 18, 86, 0.08) 70%,
-              rgba(52, 18, 86, 0.22) 82%,
-              rgba(52, 18, 86, 0.34) 100%),
-            linear-gradient(168deg,
-              rgba(52, 18, 86, 0.00) 0%,
-              rgba(52, 18, 86, 0.00) 86%,
-              rgba(52, 18, 86, 0.06) 88%,
-              rgba(52, 18, 86, 0.36) 95%,
-              rgba(52, 18, 86, 0.54) 100%),
-            radial-gradient(circle at 30% 20%,
-              var(--v10-pulse-0) 0%,
-              var(--v10-pulse-1) 32%,
-              var(--v10-pulse-2) 78%,
-              var(--v10-pulse-3) 100%);
-          background-repeat: no-repeat;
-          /* bottom layers를 크게 깔아두고 position을 살짝 흔들어 "유동형"으로 보이게 */
-          background-size: auto, auto, 160% 140%, 140% 140%, auto;
-          background-position: 0 0, 0 0, 45% 100%, 50% 100%, 0 0;
-          /* 채도 아주 살짝 올리고, 명도는 아주 살짝 낮춰 "조금만" 진하게 */
-          /* 회색빛 방지: 채도는 한 단계 더 올리고, 명도는 유지 */
-          filter: saturate(1.22) brightness(1.03);
-          animation:
-            v10PinkPulse 9s ease-in-out infinite,
-            v10PulseTintCycle 20s ease-in-out infinite,
-            v10BottomDrift 6.5s ease-in-out infinite;
-          will-change: opacity, filter, background-position;
-        }
-        /* Keep all real content above the pulsing overlay */
-        .container > :global(.canvas-wrapper) {
-          z-index: 1;
-        }
-        /* enforce Pretendard Variable across the page */
-        :global(html), :global(body), :global(input), :global(button), :global(textarea) {
-          font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', 'Helvetica Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, 'Nanum Gothic', sans-serif;
-        }
-        .container--bright {
-          background: radial-gradient(circle at 30% 20%, #fffeff 0%, #fff7fb 38%, #fbeff5 100%);
-        }
-
-        /* 모달 스타일은 modal-logic.js에 포함됨 */
-
-        @keyframes receiptPrint {
-          0% { transform: scaleY(0.02); }
-          70% { transform: scaleY(1.04); }
-          100% { transform: scaleY(1); }
-        }
-        @keyframes drawLine {
-          0%   { opacity: 0; transform: scaleX(0); }
-          20%  { opacity: 1; }
-          100% { opacity: 0; transform: scaleX(1); }
-        }
-        @keyframes v10PinkPulse {
-          0%, 100% { opacity: 0; }
-          45%, 55% { opacity: 0.58; }
-        }
-
-        /* 하단 눌림 레이어(곡선/대각선)만 아주 미세하게 좌우로 드리프트 */
-        @keyframes v10BottomDrift {
-          0%, 100% {
-            background-position: 0 0, 0 0, 45% 100%, 50% 100%, 0 0;
-          }
-          50% {
-            background-position: 0 0, 0 0, 55% 100%, 46% 100%, 0 0;
-          }
-        }
-
-        /* 5초 단위 "단계"를 유지하되, 단계 사이(약 1초)는 부드럽게 그라데이션 전환 */
-        @keyframes v10PulseTintCycle {
-          /* 0s: 원래 핑크 (하단 어두운 핑크) */
-          0%, 20% {
-            --v10-pulse-0: #fff2fb;
-            --v10-pulse-1: #f4e0f2;
-            --v10-pulse-2: #d3b5e0;
-            --v10-pulse-3: #b58fd0;
-            filter: saturate(1.26) brightness(1.03);
-          }
-          /* 5s: 밝아짐(핑크가 더 화사) */
-          25%, 45% {
-            --v10-pulse-0: #fff6fd;
-            --v10-pulse-1: #f8e9f6;
-            --v10-pulse-2: #e6d0f0;
-            --v10-pulse-3: #d1b7e6;
-            filter: saturate(1.20) brightness(1.07);
-          }
-          /* 10s: 민트보단 블루에 가까운 아쿠아(채도 낮춤) */
-          50%, 70% {
-            --v10-pulse-0: #f0fbff;
-            --v10-pulse-1: #def3ff;
-            --v10-pulse-2: #b6e6ff;
-            --v10-pulse-3: #87cdf6;
-            filter: saturate(1.26) brightness(1.05);
-          }
-          /* 15s: 밝아짐(아쿠아가 더 화사) */
-          75%, 95% {
-            --v10-pulse-0: #f6fdff;
-            --v10-pulse-1: #eaf8ff;
-            --v10-pulse-2: #d2f0ff;
-            --v10-pulse-3: #a9dfff;
-            filter: saturate(1.16) brightness(1.08);
-          }
-          /* 20s: 다시 핑크로 복귀 */
-          100% {
-            --v10-pulse-0: #fff2fb;
-            --v10-pulse-1: #f4e0f2;
-            --v10-pulse-2: #d3b5e0;
-            --v10-pulse-3: #b58fd0;
-            filter: saturate(1.26) brightness(1.03);
-          }
-        }
-        .glass-content h3 {
-          margin: 0;
-          font-size: clamp(18px, 4.6vw, 22px);
-          font-weight: 800;
-        }
-        .glass-content p {
-          margin: 0;
-          font-size: 15px;
-          font-weight: 500;
-          opacity: 0.84;
-          line-height: 1.6;
-        }
-        .primary {
-          border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.58);
-          background: linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.46) 50%, rgba(255,255,255,0.34) 100%);
-          box-shadow:
-            0 8px 18px rgba(30, 76, 78, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.72);
-          backdrop-filter: blur(18px) saturate(1.0) brightness(1.00);
-          color: #2a2f42;
-          font-weight: 700;
-          font-size: clamp(12px, 3.2vw, 14px);
-          padding: clamp(9px, 2.6vw, 12px) clamp(24px, 6.2vw, 32px);
-          cursor: pointer;
-          transition: box-shadow 180ms ease, transform 180ms ease;
-        }
-        .primary:hover {
-          box-shadow:
-            0 24px 42px rgba(30, 76, 78, 0.20),
-            inset 0 1px 0 rgba(255,255,255,0.66);
-          transform: translateY(-2px);
-        }
-        .primary:focus { outline: none; }
       `}</style>
     </div>
   );
